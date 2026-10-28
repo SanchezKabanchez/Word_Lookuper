@@ -13,6 +13,7 @@ def isolated_data(tmp_path, monkeypatch):
     monkeypatch.setattr(w, "_card_cache", {})
     monkeypatch.setattr(w, "_cache_new", 0)
     monkeypatch.setattr(w, "events", queue.Queue())
+    monkeypatch.setattr(w, "_last_game_detection", {})
     # Tests must not accidentally depend on an external translation service.
     def no_network(*args, **kwargs):
         raise AssertionError("Unexpected network request in offline tests")

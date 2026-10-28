@@ -37,6 +37,7 @@ import io
 import itertools
 import json
 import math
+import ntpath
 import os
 import queue
 import re
@@ -293,15 +294,106 @@ class GamePauseGuard:
         return self.last_status in ("RESUMED", "TARGET_EXITED"), self.last_status
 
 
-def foreground_game(expected_exe):
-    """Пауза дозволена лише для вказаного .exe в активному вікні Windows."""
+_NON_GAME_EXES = frozenset({
+    "python.exe", "pythonw.exe", "python3.exe", "explorer.exe", "dwm.exe", "steam.exe",
+    "steamwebhelper.exe", "epicgameslauncher.exe", "epicwebhelper.exe", "galaxyclient.exe",
+    "ubisoftconnect.exe", "upc.exe", "eadesktop.exe", "ealauncher.exe", "origin.exe",
+    "battle.net.exe", "riotclientservices.exe", "rockstargameslauncher.exe",
+    "svchost.exe", "csrss.exe", "winlogon.exe", "services.exe", "lsass.exe", "sihost.exe",
+    "runtimebroker.exe", "applicationframehost.exe", "shellexperiencehost.exe",
+    "startmenuexperiencehost.exe", "searchhost.exe", "searchapp.exe", "textinputhost.exe",
+    "systemsettings.exe", "taskmgr.exe", "taskhostw.exe", "securityhealthsystray.exe",
+    "chrome.exe", "msedge.exe", "firefox.exe", "brave.exe", "opera.exe", "iexplore.exe",
+    "cmd.exe", "powershell.exe", "pwsh.exe", "windowsterminal.exe", "conhost.exe", "openconsole.exe",
+    "code.exe", "cursor.exe", "devenv.exe", "idea64.exe", "rider64.exe", "notepad.exe", "notepad++.exe",
+    "discord.exe", "obs64.exe", "obs32.exe", "vlc.exe", "mpv.exe", "wmplayer.exe", "spotify.exe",
+    "blender.exe", "aseprite.exe", "unity.exe", "unrealeditor.exe", "ue4editor.exe",
+    "wallpaper32.exe", "wallpaper64.exe", "calculatorapp.exe",
+})
+_KNOWN_GAME_EXES = frozenset({
+    "cyberpunk2077.exe", "hogwartslegacy.exe", "rdr2.exe", "eldenring.exe", "witcher3.exe",
+    "bg3.exe", "bg3_dx11.exe", "skyrimse.exe", "skyrim.exe", "fallout4.exe", "starfield.exe",
+    "gta5.exe", "gta5_enhanced.exe", "kingdomcome.exe", "kingdomcome2.exe", "terraria.exe",
+    "stardew valley.exe", "hollow_knight.exe", "hades.exe", "hades2.exe", "factorio.exe",
+})
+_game_registry_cache = {"until": 0.0, "paths": set()}
+_last_game_detection = {}
+
+
+def windows_exe_path(path):
+    if not isinstance(path, str) or not path.strip():
+        return ""
+    value = path.strip().replace("/", "\\")
+    if value.startswith("\\\\?\\"):
+        value = value[4:]
+    return ntpath.normpath(value).replace("\\", "/").casefold()
+
+
+def non_game_process(name, exe_path=""):
+    name = name.strip().casefold()
+    if (name in _NON_GAME_EXES or re.fullmatch(r"python(?:w|\d+(?:\.\d+)*w?)?\.exe", name)
+            or any(part in name for part in ("launcher", "crashreport", "crashhandler", "anticheat"))):
+        return True
+    path = windows_exe_path(exe_path)
+    system = windows_exe_path(os.environ.get("SystemRoot", r"C:\Windows"))
+    return bool(path and system and (path == system or path.startswith(system + "/")))
+
+
+def registered_game_paths():
+    """Локальні позначки Windows Game Mode; не скануємо весь список процесів."""
+    if not sys.platform.startswith("win"):
+        return set()
+    now = time.monotonic()
+    if now < _game_registry_cache["until"]:
+        return _game_registry_cache["paths"]
+    paths = set()
+    try:
+        import winreg
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"System\GameConfigStore\Children") as parent:
+            for i in range(winreg.QueryInfoKey(parent)[0]):
+                try:
+                    with winreg.OpenKey(parent, winreg.EnumKey(parent, i)) as child:
+                        value = winreg.QueryValueEx(child, "MatchedExeFullPath")[0]
+                        if isinstance(value, str) and value:
+                            paths.add(windows_exe_path(value))
+                except OSError:
+                    continue
+    except OSError:
+        pass
+    _game_registry_cache.update(until=now + 60, paths=paths)
+    return paths
+
+
+def game_detection_reason(name, exe_path, registered=()):
+    """Консервативні ознаки гри; звичайне повноекранне вікно не є такою ознакою."""
+    name, path = name.strip().casefold(), windows_exe_path(exe_path)
+    if (non_game_process(name, exe_path) or not path or not ntpath.isabs(path)
+            or ntpath.basename(path) != name):
+        return ""
+    if path in registered:
+        return "Windows Game Mode"
+    if re.search(r"-(?:win64|win32)-shipping\.exe$", name):
+        return "Unreal Engine Shipping"
+    if name in _KNOWN_GAME_EXES:
+        return "відома гра"
+    parts = path.split("/")
+    for marker, label in ((["steamapps", "common"], "Steam"), (["epic games"], "Epic Games"),
+                          (["gog galaxy", "games"], "GOG"), (["gog games"], "GOG"),
+                          (["xboxgames"], "Xbox"), (["ea games"], "EA"),
+                          (["ubisoft game launcher", "games"], "Ubisoft"),
+                          (["rockstar games"], "Rockstar")):
+        for i in range(len(parts) - len(marker) - 1):
+            if parts[i:i + len(marker)] == marker:
+                folder = parts[i + len(marker)]
+                if folder not in {"launcher", "launchers", "redist", "redistributables", "support", "tools"}:
+                    return label
+    return ""
+
+
+def foreground_process_info():
+    """Один знімок активного вікна та процесу, без зміни його стану."""
     if not sys.platform.startswith("win"):
         raise RuntimeError("Пауза процесу гри доступна лише у Windows")
-    name = expected_exe.strip().casefold()
-    blocked = {"python.exe", "pythonw.exe", "explorer.exe", "dwm.exe", "steam.exe",
-               "svchost.exe", "csrss.exe", "winlogon.exe", "services.exe", "lsass.exe"}
-    if not name.endswith(".exe") or "/" in name or "\\" in name or name in blocked:
-        raise RuntimeError("Укажи точну назву процесу гри, наприклад HogwartsLegacy.exe")
     import ctypes
     from ctypes import wintypes
     import psutil
@@ -313,11 +405,45 @@ def foreground_game(expected_exe):
     if not pid.value or pid.value in (os.getpid(), os.getppid()):
         raise RuntimeError("Повернись у гру та натисни Ctrl+Alt+R або Ctrl+Alt+G")
     target = psutil.Process(pid.value)
-    if target.name().casefold() != name:
-        raise RuntimeError("Активне вікно не належить грі, указаній у налаштуваннях")
-    if target.status() == psutil.STATUS_STOPPED:
+    with target.oneshot():
+        info = {"pid": target.pid, "created": target.create_time(), "name": target.name(),
+                "status": target.status(), "hwnd": hwnd, "title": _foreground_title()}
+        try:
+            info["exe"] = target.exe()
+        except psutil.AccessDenied:
+            info["exe"] = ""
+    if not target.is_running():
+        raise RuntimeError("Процес завершився під час визначення гри")
+    return info
+
+
+def foreground_game(expected_exe=""):
+    """Порожня назва — автовизначення; непорожня — точний ручний вибір .exe."""
+    global _last_game_detection
+    _last_game_detection = {}
+    info = foreground_process_info()
+    if info["pid"] in (0, os.getpid(), os.getppid()) or non_game_process(info["name"], info["exe"]):
+        raise RuntimeError("Це службова або звичайна програма; повернись у вікно гри")
+    name = expected_exe.strip().casefold()
+    if name:
+        if (not name.endswith(".exe") or len(name) <= 4 or ntpath.basename(name) != name
+                or ntpath.splitdrive(name)[0] or non_game_process(name)):
+            raise RuntimeError("Укажи точну назву процесу гри, наприклад HogwartsLegacy.exe")
+        if info["name"].casefold() != name:
+            raise RuntimeError("Активне вікно не належить грі, указаній у налаштуваннях")
+        reason = "ручний вибір"
+    else:
+        reason = game_detection_reason(info["name"], info["exe"], registered_game_paths())
+        if not reason:
+            raise RuntimeError("Не вдалося впевнено розпізнати гру в активному вікні. "
+                               "Вимкни автовизначення й укажи її .exe вручну.")
+    import psutil
+    if info["status"] == psutil.STATUS_STOPPED:
         raise RuntimeError("Цей процес уже призупинений іншим інструментом")
-    return target.pid, target.create_time(), hwnd
+    if _foreground_window() != info["hwnd"]:
+        raise RuntimeError("Активне вікно змінилось. Повернись у гру й повтори гарячу клавішу.")
+    _last_game_detection = {**info, "reason": reason}
+    return info["pid"], info["created"], info["hwnd"]
 
 
 os.environ.setdefault("PYGAME_HIDE_SUPPORT_PROMPT", "1")
@@ -368,7 +494,8 @@ DEFAULT_CONFIG = {
     "cache": {"max_entries": 1000},
     "deepl": {"enabled": True, "key": ""},
     "anki": {"game": "", "auto_game_tag": True, "deck": "Word Lookup"},
-    "freeze": {"hover_highlight": True, "pause_game": False, "game_exe": "", "pause_seconds": 120},
+    "freeze": {"hover_highlight": True, "pause_game": False, "auto_game": True,
+               "game_exe": "", "pause_seconds": 120},
     "auto": {"enabled": False, "drag_px": 12, "double_click_s": 0.35},
     "app": {"start_minimized": False},
     "learning": {"capture_context": False},
@@ -4097,14 +4224,23 @@ class App:
                         ).pack(anchor="w", pady=(6, 0))
         pause_box = ttk.LabelFrame(f, text="Пауза гри під час вибору й перекладу (Windows)", padding=10)
         pause_box.pack(fill="x", pady=(10, 0))
-        ttk.Checkbutton(pause_box, text="Призупиняти процес указаної гри",
+        ttk.Checkbutton(pause_box, text="Призупиняти гру на час вибору й перекладу",
                         variable=self._var(tk.BooleanVar, ("freeze", "pause_game"),
                                            after=self._pause_option_changed)).pack(anchor="w")
+        ttk.Checkbutton(pause_box, text="Автоматично визначати активну гру",
+                        variable=self._var(tk.BooleanVar, ("freeze", "auto_game"),
+                                           after=self._game_mode_changed)).pack(anchor="w", pady=(4, 0))
         process_row = ttk.Frame(pause_box)
         process_row.pack(fill="x", pady=6)
-        ttk.Label(process_row, text="Процес гри (.exe):").pack(side="left")
-        ttk.Entry(process_row, textvariable=self._var(tk.StringVar, ("freeze", "game_exe")),
-                  width=28).pack(side="left", padx=6)
+        ttk.Label(process_row, text="Вручну (.exe):").pack(side="left")
+        self.game_exe_entry = ttk.Entry(process_row,
+            textvariable=self._var(tk.StringVar, ("freeze", "game_exe")), width=28)
+        self.game_exe_entry.pack(side="left", padx=6)
+        self.game_detection_var = tk.StringVar(value="Гра визначається при натисканні гарячої клавіші у її вікні.")
+        ttk.Label(pause_box, textvariable=self.game_detection_var, wraplength=520).pack(anchor="w", pady=4)
+        ttk.Button(pause_box, text="Перевірити визначення через 3 с",
+                   command=self.schedule_game_detection).pack(anchor="w", pady=(0, 6))
+        self._game_mode_changed()
         limit_row = ttk.Frame(pause_box)
         limit_row.pack(fill="x")
         ttk.Label(limit_row, text="Відновити автоматично через, с:").pack(side="left")
@@ -5266,6 +5402,43 @@ class App:
                     post_lookup(token, "toast", f"Помилка перекладу: {e}")
 
     # ---------- виділення області (як скріншот) ----------
+    def _game_mode_changed(self):
+        automatic = cfg["freeze"]["auto_game"]
+        self.game_exe_entry.configure(state="disabled" if automatic else "normal")
+
+    def _game_target_name(self):
+        if cfg["freeze"]["auto_game"]:
+            return ""
+        name = cfg["freeze"]["game_exe"].strip()
+        if not name:
+            raise RuntimeError("Укажи .exe вручну або увімкни автоматичне визначення гри")
+        return name
+
+    def _display_game_detection(self):
+        info = _last_game_detection
+        name = info.get("name", "")
+        title = info.get("title", "") or name
+        reason = info.get("reason", "")
+        self.game_detection_var.set(f"Визначено: {title[:80]} · {name} · {reason}" if name
+                                    else "Активну гру визначено")
+
+    def schedule_game_detection(self):
+        timer = getattr(self, "_game_detect_timer", None)
+        if timer is not None:
+            self.root.after_cancel(timer)
+        self.game_detection_var.set("Перемкнися у вікно гри — перевірка через 3 секунди. Пауза не вмикається.")
+        self._game_detect_timer = self.root.after(3000, self._check_active_game)
+
+    def _check_active_game(self):
+        self._game_detect_timer = None
+        try:
+            foreground_game(self._game_target_name())
+            self._display_game_detection()
+            return True
+        except Exception as e:
+            self.game_detection_var.set(str(e))
+            return False
+
     def _pause_option_changed(self):
         if not cfg["freeze"]["pause_game"]:
             self._resume_game()
@@ -5279,7 +5452,8 @@ class App:
             self._resume_game()
         guard = None
         try:
-            pid, created, hwnd = foreground_game(cfg["freeze"]["game_exe"])
+            pid, created, hwnd = foreground_game(self._game_target_name())
+            self._display_game_detection()
             limit = clamp(cfg["freeze"]["pause_seconds"], 5, 300)
             guard = GamePauseGuard(pid, created, limit)
             self._game_pause, self._game_pause_hwnd = guard, hwnd
