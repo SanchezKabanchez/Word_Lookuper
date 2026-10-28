@@ -1,0 +1,10 @@
+deep-translator==1.11.4
+genanki==0.13.1
+mss==10.2.0
+pillow==13.0.0
+pygame==2.6.1
+psutil==7.2.2
+pynput==1.8.2
+pyperclip==1.11.0
+pytesseract==0.3.13
+requests==2.34.2
