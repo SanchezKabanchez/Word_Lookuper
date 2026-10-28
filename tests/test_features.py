@@ -55,7 +55,7 @@ def test_library_details_edit_persist_and_do_not_get_overwritten(app, card):
 
 def test_clear_definition_is_respected_by_offline_card_and_export(card):
     w.add_saved_word(card)
-    entry = w.update_saved_entry(card["word"], {"definition": "", "example": "My example"})
+    entry = w.update_saved_entry(card["word"], {"definition": "", "definition_tr": "", "example": "My example"})
     w.add_saved_word(card)
     assert w.saved_word_card(entry)["meanings"][0]["defs"][0] == {"d": "", "e": "My example"}
     assert not w._needs_enrich(entry)

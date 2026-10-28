@@ -467,7 +467,7 @@ if sys.platform != "darwin":
 
 # ============================== Конфігурація ===============================
 DEFAULT_CONFIG = {
-    "version": 3,
+    "version": 4,
     "hotkeys": {
         "lookup_word": "ctrl+alt+d",
         "select_region": "ctrl+alt+r",
@@ -488,9 +488,11 @@ DEFAULT_CONFIG = {
     "ocr": {"engine": "auto", "tesseract_cmd": "", "region_w": 480,
             "region_h": 100, "upscale": 2.0, "highlight": True,
             "split_merged_words": True},
-    "popup": {"theme": "light", "font_size": 12, "width": 400, "opacity": 1.0,
+    "popup": {"theme": "light", "font_size": 10, "width": 400, "opacity": 1.0,
               "timeout": 60, "highlight_color": "#ffee00", "btn_speak": True,
-              "sentence": True, "translate_definition": True},
+              "sentence": True, "sentence_translation": True, "translate_definition": True,
+              "phonetic": True, "examples": True, "alternate_translations": True,
+              "context_image": True},
     "cache": {"max_entries": 1000},
     "deepl": {"enabled": True, "key": ""},
     "anki": {"game": "", "auto_game_tag": True, "deck": "Word Lookup"},
@@ -516,14 +518,27 @@ ACTIONS = [
 ]
 
 THEMES = {
-    "light": dict(bg="#f4f2f1", fg="#1d1d1f", dim="#8e8e93", head="#5a5a5f",
-                  line="#d6d3d1", link="#0a66d6", example="#3a3a3c", border="#cfcbc8"),
-    "dark": dict(bg="#2b2b2e", fg="#f2f2f7", dim="#98989d", head="#c7c7cc",
-                 line="#48484a", link="#4da3ff", example="#d1d1d6", border="#48484a"),
+    "light": dict(bg="#ffffff", fg="#202c40", dim="#59677b", head="#455978",
+                  line="#e3e9f2", link="#2864dc", example="#53657b", border="#d5deed"),
+    "dark": dict(bg="#202936", fg="#edf2fa", dim="#a8b7ca", head="#bdcce1",
+                 line="#3a485d", link="#87b7ff", example="#c0cddd", border="#45546b"),
     "sepia": dict(bg="#f4ecd8", fg="#3b2f1e", dim="#8a7a60", head="#6b5a40",
                   line="#d8cba8", link="#a4562b", example="#4d3f2a", border="#cdbf9f"),
 }
 THEME_NAMES = {"Світла": "light", "Темна": "dark", "Сепія": "sepia"}
+CARD_CONTENT_OPTIONS = (
+    (("sections", "bilingual"), "Переклад слова"),
+    (("popup", "sentence"), "Речення мовою оригіналу"),
+    (("popup", "sentence_translation"), "Переклад речення"),
+    (("popup", "phonetic"), "Транскрипція"),
+    (("sections", "definitions"), "Визначення англійською"),
+    (("popup", "translate_definition"), "Переклад визначення"),
+    (("popup", "examples"), "Приклади вживання"),
+    (("sections", "thesaurus"), "Синоніми й антоніми"),
+    (("popup", "alternate_translations"), "Додаткові варіанти перекладу"),
+    (("popup", "context_image"), "Зображення контексту"),
+    (("popup", "btn_speak"), "Кнопки озвучення"),
+)
 LANG_NAMES = {"Українська": "uk", "Польська": "pl", "Німецька": "de", "Французька": "fr",
               "Іспанська": "es", "Італійська": "it", "Чеська": "cs", "Турецька": "tr"}
 LANG_EN = {"uk": "Ukrainian", "pl": "Polish", "de": "German", "fr": "French",
@@ -571,6 +586,14 @@ def load_config() -> dict:
                 # значення ще не чіпали — підхопити новий типовий тайм-аут в 1 хвилину
                 if isinstance(saved.get("popup"), dict) and saved["popup"].get("timeout") == 0:
                     saved["popup"].pop("timeout", None)
+            if saved_version < 4:
+                # Замінюємо лише колишній типовий розмір; інші власні розміри лишаються.
+                if isinstance(saved.get("popup"), dict) and saved["popup"].get("font_size") == 12:
+                    saved["popup"]["font_size"] = 10
+                old_popup = saved.get("popup")
+                if isinstance(old_popup, dict) and "sentence_translation" not in old_popup \
+                        and isinstance(old_popup.get("sentence"), bool):
+                    old_popup["sentence_translation"] = old_popup["sentence"]
             saved["version"] = DEFAULT_CONFIG["version"]
         if isinstance(saved, dict):
             _merge(cfg, saved)
@@ -856,14 +879,59 @@ def _p_chrome(text, sl, want_dict):
 
 
 def _p_deep(text, sl, want_dict):
-    """Мобільний ендпойнт Google через deep-translator."""
+    """Мобільна сторінка Google з явним тайм-аутом, як в інших джерел."""
+    from html.parser import HTMLParser
+
+    text = text.strip()
+    if not text or sl == cfg["languages"]["target"]:
+        return text, []
+    if len(text) > 5000:
+        raise ValueError("Завеликий текст для мобільного перекладача")
+
+    class TranslationParser(HTMLParser):
+        def __init__(self):
+            super().__init__(convert_charrefs=True)
+            self.depth = 0
+            self.parts = []
+            self.results = []
+
+        def handle_starttag(self, tag, attrs):
+            if self.depth:
+                if tag == "br":
+                    self.parts.append("\n")
+                if tag not in {"area", "base", "br", "col", "embed", "hr", "img", "input",
+                                "link", "meta", "param", "source", "track", "wbr"}:
+                    self.depth += 1
+            elif tag == "div" and set(dict(attrs).get("class", "").split()) & {"t0", "result-container"}:
+                self.depth = 1
+                self.parts = []
+
+        def handle_endtag(self, tag):
+            if self.depth and tag not in {"area", "base", "br", "col", "embed", "hr", "img", "input",
+                                          "link", "meta", "param", "source", "track", "wbr"}:
+                self.depth -= 1
+                if not self.depth:
+                    self.results.append("".join(self.parts).strip())
+
+        def handle_data(self, data):
+            if self.depth:
+                self.parts.append(data)
+
+    response = SESSION.get("https://translate.google.com/m", params={
+        "sl": sl, "tl": cfg["languages"]["target"], "q": text}, timeout=8)
     try:
-        out = GoogleTranslator(source=sl, target=cfg["languages"]["target"]).translate(text)
-    except Exception as e:
-        if type(e).__name__ == "TooManyRequests":
-            raise RateLimited(str(e))
-        raise
-    return (out or ""), []
+        if response.status_code == 429:
+            raise RateLimited("Google mobile: HTTP 429")
+        response.raise_for_status()
+        parser = TranslationParser()
+        parser.feed(response.text)
+        parser.close()
+        out = next((item for item in parser.results if item), "")
+        if not out:
+            raise ValueError("Мобільний перекладач не повернув переклад")
+        return out, []
+    finally:
+        response.close()
 
 
 def _chunks(text, size=450):
@@ -2237,18 +2305,20 @@ def build_word_card_fast(word: str, on_partial=None, context: str = ""):
         cached["word"] = word
         return cached, False
     empty = {"base": "", "phonetic": "", "audios": [], "meanings": []}
-    main, groups, note, limited = _translate_word(word, context)
-    partial = {"kind": "word", "word": word, "translation": main, "groups": groups,
-              "note": note, "dict_note": "", "dict_pending": True, **empty}
-    if on_partial:
-        on_partial(partial)
     pool = ThreadPoolExecutor(max_workers=1)
     try:
-        # без ліміту часу картка могла вічно висіти на «Завантажую визначення…»
-        info, dict_note = pool.submit(english_dictionary, word).result(timeout=9), ""
-    except Exception as e:
-        info, dict_note = empty, (str(e) if isinstance(e, RuntimeError) else
-                                  "Англійський словник не відповів — можливо, повільна мережа.")
+        # Обидва джерела стартують разом; показ першого перекладу не чекає словника.
+        dictionary = pool.submit(english_dictionary, word)
+        main, groups, note, limited = _translate_word(word, context)
+        partial = {"kind": "word", "word": word, "translation": main, "groups": groups,
+                  "note": note, "dict_note": "", "dict_pending": True, **empty}
+        if on_partial:
+            on_partial(partial)
+        try:
+            info, dict_note = dictionary.result(timeout=9), ""
+        except Exception as e:
+            info, dict_note = empty, (str(e) if isinstance(e, RuntimeError) else
+                                      "Англійський словник не відповів — можливо, повільна мережа.")
     finally:
         pool.shutdown(wait=False)
     if info.get("corrected_from"):  # OCR, ймовірно, помилився — перекладаємо вже виправлене слово
@@ -2268,6 +2338,9 @@ SAMPLE_CARD = {
     "kind": "word", "word": "understatement", "base": "understatement",
     "phonetic": "ˌʌndəˈsteɪtmənt", "audios": [("BrE", "preview"), ("AmE", "preview")],
     "translation": "применшення",
+    "sentence": "To say I am delighted is an understatement.",
+    "sentence_tr": "Сказати, що я в захваті, — це применшення.",
+    "definition_tr": "Опис чогось як меншого або менш важливого, ніж воно є насправді.",
     "groups": [("іменник", ["применшення", "стриманий вислів", "недомовка"])],
     "meanings": [{
         "pos": "noun",
@@ -3232,14 +3305,40 @@ class Popup:
 
     def _toolbar(self):
         row = tk.Frame(self.content, bg=self.th["bg"])
-        row.pack(fill="x", pady=(0, 8))
-        self.pin_btn = tk.Button(row, text="Відкріпити" if self.pinned else "Закріпити",
-                                 command=self.toggle_pin, takefocus=True)
+        row.pack(fill="x", pady=(0, 9))
+        self.pin_btn = self._tool_button(row, "Відкріпити" if self.pinned else "Закріпити",
+                                         self.toggle_pin)
         self.pin_btn.pack(side="left")
-        tk.Button(row, text="Копіювати", command=self.copy_translation).pack(side="left", padx=6)
-        tk.Button(row, text="✕", command=self.app.dismiss_lookup, width=3).pack(side="right")
+        self._tool_button(row, "Копіювати", self.copy_translation).pack(side="left", padx=5)
+        self._tool_button(row, "✕", self.app.dismiss_lookup).pack(side="right")
+        self.options_btn = self._tool_button(row, "Вигляд ▾", self._show_options)
+        self.options_btn.pack(side="right", padx=5)
         self.win.bind("<Escape>", lambda _e: self.app.dismiss_lookup())
         self.win.bind("<Control-Return>", lambda _e: self.save_current())
+
+    def _tool_button(self, parent, text, command):
+        return tk.Button(parent, text=text, command=command, font=(FONT, 9),
+                         bg=self.th["bg"], fg=self.th["link"], relief="flat", bd=0,
+                         activebackground=self.th["line"], activeforeground=self.th["fg"],
+                         padx=5, pady=3, cursor="hand2", takefocus=True)
+
+    def _show_options(self):
+        # Під час налаштування картка залишається відкритою, зокрема при кліку в меню.
+        if not self.pinned:
+            self.toggle_pin()
+        menu = getattr(self, "options_menu", None)
+        if menu is None:
+            self.options_menu = menu = tk.Menu(self.win, tearoff=False, font=(FONT, 9))
+            for path, label in CARD_CONTENT_OPTIONS:
+                menu.add_checkbutton(label=label, variable=self.app._var(tk.BooleanVar, path,
+                                                             after=self.app._refresh_preview))
+            menu.add_separator()
+            menu.add_command(label="Усі налаштування картки…", command=self.app.open_card_settings)
+        try:
+            menu.tk_popup(self.options_btn.winfo_rootx(),
+                          self.options_btn.winfo_rooty() + self.options_btn.winfo_height())
+        finally:
+            menu.grab_release()
 
     def copy_translation(self):
         text = self.card.get("translation") or _card_primary_translation(self.card)
@@ -3355,7 +3454,7 @@ class Popup:
             btn.bind("<Button-1>", on_click)
 
     def more(self, key):
-        b = tk.Label(self.content, text="more", font=(FONT, self.fs - 1, "bold"),
+        b = tk.Label(self.content, text="Показати ще", font=(FONT, self.fs - 1, "bold"),
                      fg=self.th["link"], bg=self.th["bg"], cursor="hand2")
         b.pack(anchor="w", padx=(6, 0), pady=(3, 0))
 
@@ -3371,10 +3470,12 @@ class Popup:
         row = tk.Frame(self.content, bg=self.th["bg"])
         row.pack(fill="x", pady=4)
         self.save_button(row)
-        self.lbl(self.card["original"], size=-1, color=self.th["dim"], indent=6)
-        self.lbl(self.card["translation"], size=1, indent=6, pady=(4, 0))
-        self.context_photo = context_photo(self.card.get("image_file", ""), self.win,
+        if cfg["popup"]["sentence"]:
+            self.lbl(self.card["original"], size=-1, color=self.th["dim"], indent=6)
+        self.lbl(self.card["translation"], bold=True, indent=6, pady=(4, 0))
+        self.context_photo = (context_photo(self.card.get("image_file", ""), self.win,
                                             size=(max(1, self.cw - 12), 220))
+                              if cfg["popup"]["context_image"] else None)
         if self.context_photo:
             tk.Label(self.content, image=self.context_photo, bg=self.th["bg"]).pack(anchor="w", padx=6)
 
@@ -3400,16 +3501,17 @@ class Popup:
 
         # речення з гри + його переклад (слово підсвічене в обох) — як у Translator
         sentence = c.get("sentence") or ""
-        if sentence and S["bilingual"]:
-            self.rich_text(split_around_word(sentence, c["word"]), color=th["dim"], size=-1,
-                           pady=(6, 0))
+        if sentence:
+            if cfg["popup"]["sentence"]:
+                self.rich_text(split_around_word(sentence, c["word"]), color=th["dim"], size=-1,
+                               pady=(6, 0))
             stl = c.get("sentence_tr") or ""
-            if stl:
+            if stl and cfg["popup"]["sentence_translation"]:
                 span = align_word_span(stl, primary_translations(c))
                 parts = ([(stl[:span[0]], False), (stl[span[0]:span[1]], True), (stl[span[1]:], False)]
                          if span else [(stl, False)])
                 self.rich_text(parts, pady=(2, 0))
-            elif c.get("sentence_pending"):
+            elif c.get("sentence_pending") and cfg["popup"]["sentence_translation"]:
                 self.lbl("Перекладаю речення…", size=-1, color=th["dim"], indent=6, pady=(2, 0))
 
         # 2) Головний переклад — кілька варіантів одразу, якщо слово має різні значення
@@ -3417,13 +3519,13 @@ class Popup:
         # часто вгадує не той контекст)
         alts = primary_translations(c)
         if S["bilingual"] and alts:
-            self.lbl(" / ".join(alts), size=3, bold=True, indent=6, pady=(2, 0))
+            self.lbl(" / ".join(alts), size=1, bold=True, indent=6, pady=(6, 0))
         elif S["bilingual"] and c.get("note"):
             self.lbl("⚠ " + c["note"], color="#c2410c", indent=6, pady=(2, 0))
 
         # 3) Вимова і частина мови
         pos0 = meanings[0].get("pos", "") if meanings else ""
-        bits = [b for b in ((f"/{c['phonetic']}/" if c.get("phonetic") else ""), pos0) if b]
+        bits = [b for b in ((f"/{c['phonetic']}/" if c.get("phonetic") and cfg["popup"]["phonetic"] else ""), pos0) if b]
         if bits:
             self.lbl("  ·  ".join(bits), size=-1, color=th["dim"], indent=6, pady=(1, 0))
 
@@ -3438,11 +3540,11 @@ class Popup:
                     self.lbl(d["d"], indent=6)
                     if first_def:  # переклад першого визначення — одразу під ним
                         first_def = False
-                        if c.get("definition_tr"):
+                        if c.get("definition_tr") and cfg["popup"]["translate_definition"]:
                             self.lbl(c["definition_tr"], bold=True, indent=6, pady=(1, 0))
-                        elif c.get("def_tr_pending"):
+                        elif c.get("def_tr_pending") and cfg["popup"]["translate_definition"]:
                             self.lbl("…", color=th["dim"], indent=6)
-                    if d["e"]:
+                    if d["e"] and cfg["popup"]["examples"]:
                         self.lbl(d["e"], italic=True, color=th["example"], indent=6)
             if not exp and (len(meanings) > max_def or any(len(m["defs"]) > 1 for m in shown)):
                 self.more("def")
@@ -3469,14 +3571,15 @@ class Popup:
                 self.more("thes")
 
         # 7) Додаткові варіанти перекладу — унизу, другорядно
-        if S["bilingual"] and groups:
+        if S["bilingual"] and groups and cfg["popup"]["alternate_translations"]:
             self.lbl("Інші варіанти перекладу", size=-1, bold=True, color=th["head"],
                      indent=6, pady=(8, 2))
             for pos, terms in groups:
                 label = f"{pos}: " if pos else ""
                 self.lbl(label + ", ".join(terms), indent=6)
-        self.context_photo = context_photo(c.get("image_file", ""), self.win,
+        self.context_photo = (context_photo(c.get("image_file", ""), self.win,
                                             size=(max(1, self.cw - 12), 220))
+                              if cfg["popup"]["context_image"] else None)
         if self.context_photo:
             self.lbl("Контекст із гри", size=-1, color=th["dim"], indent=6, pady=(8, 2))
             tk.Label(self.content, image=self.context_photo, bg=th["bg"]).pack(anchor="w", padx=6)
@@ -4043,8 +4146,12 @@ class App:
     def __init__(self):
         self.root = tk.Tk()
         self.root.title(APP_NAME)
-        tkfont.nametofont("TkDefaultFont").configure(family=FONT, size=10)
+        tkfont.nametofont("TkDefaultFont").configure(family=FONT, size=9)
         tkfont.nametofont("TkTextFont").configure(family=FONT, size=10)
+        self._setting_vars = {}
+        self._config_save_timer = None
+        self._preview_timer = None
+        self._apply_style()
         self.kb = keyboard.Controller()
         self.ms = mouse.Controller()
         self.popup = self.highlight = self.toast_popup = None
@@ -4096,7 +4203,21 @@ class App:
             pass
 
     # ---------- допоміжне для налаштувань ----------
+    def _schedule_config_save(self):
+        if self._config_save_timer is not None:
+            self.root.after_cancel(self._config_save_timer)
+        self._config_save_timer = self.root.after(300, self._flush_config_save)
+
+    def _flush_config_save(self):
+        if self._config_save_timer is not None:
+            self.root.after_cancel(self._config_save_timer)
+            self._config_save_timer = None
+            save_config(cfg)
+
     def _var(self, cls, path, mapping=None, after=None):
+        path = tuple(path)
+        if path in self._setting_vars:
+            return self._setting_vars[path]
         inv = {v: k for k, v in mapping.items()} if mapping else None
         init = _get(path)
         var = cls(value=inv.get(init, init) if inv else init)
@@ -4111,10 +4232,11 @@ class App:
                     return
                 val = mapping[val]
             _put(path, val)
-            save_config(cfg)
+            self._schedule_config_save()
             if after:
                 after()
         var.trace_add("write", cb)
+        self._setting_vars[path] = var
         return var
 
     def _combo(self, parent, var, mapping, width=26):
@@ -4122,19 +4244,53 @@ class App:
                             state="readonly", width=width)
 
     # ---------- інтерфейс ----------
+    def _apply_style(self):
+        bg, fg, accent = "#f5f7fb", "#24324a", "#2864dc"
+        self.root.configure(bg=bg)
+        style = ttk.Style(self.root)
+        style.theme_use("clam")
+        style.configure(".", font=(FONT, 9), background=bg, foreground=fg)
+        style.configure("TButton", background="white", bordercolor="#d7e0ee",
+                        padding=(10, 5), focusthickness=1, focuscolor=accent)
+        style.map("TButton", background=[("active", "#e8effc"), ("pressed", "#d9e6ff")])
+        style.configure("Accent.TButton", foreground="white", background=accent)
+        style.map("Accent.TButton", background=[("active", "#1d50bb"), ("pressed", "#18429c")])
+        style.configure("TNotebook", borderwidth=0, background=bg)
+        style.configure("TNotebook.Tab", padding=(15, 8), background=bg)
+        style.map("TNotebook.Tab", background=[("selected", "white")],
+                  foreground=[("selected", accent)])
+        style.configure("TLabelframe", bordercolor="#dce4ef", relief="solid")
+        style.configure("TLabelframe.Label", font=(FONT, 9, "bold"), foreground="#4c6080")
+        style.configure("TEntry", fieldbackground="white", padding=4)
+        style.configure("Treeview", rowheight=27, fieldbackground="white", background="white")
+        style.configure("Treeview.Heading", font=(FONT, 9, "bold"), padding=6)
+        style.map("Treeview", background=[("selected", "#e1ebff")],
+                  foreground=[("selected", "#1f4ea0")])
+
     def _build_ui(self):
-        self.root.geometry(f"700x{min(800, self.root.winfo_screenheight() - 80)}")
-        self.root.minsize(620, 400)
-        nb = ttk.Notebook(self.root)
-        nb.pack(fill="both", expand=True, padx=8, pady=8)
+        self.root.geometry(f"720x{min(740, self.root.winfo_screenheight() - 80)}")
+        self.root.minsize(640, 420)
+        header = ttk.Frame(self.root, padding=(20, 14, 20, 10))
+        header.pack(fill="x")
+        title = ttk.Frame(header)
+        title.pack(side="left")
+        ttk.Label(title, text="Word Lookup", font=(FONT, 16, "bold")).pack(anchor="w")
+        ttk.Label(title, text="Перекладай у грі. Зберігай і повторюй слова.",
+                  foreground="#61728b").pack(anchor="w", pady=(3, 0))
+        ttk.Button(header, text="Бібліотека", style="Accent.TButton",
+                   command=self.open_saved_words).pack(side="right")
+        self.notebook = nb = ttk.Notebook(self.root)
+        nb.pack(fill="both", expand=True, padx=12, pady=(0, 12))
         tabs = {}
         for key, title in (("main", "Головна"), ("keys", "Кнопки"),
-                           ("look", "Вигляд"), ("dict", "Словник і OCR")):
+                           ("look", "Картка перекладу"), ("dict", "Словник і OCR")):
             panel = ScrolledPanel(nb, bg=self.root.cget("background"))
             f = ttk.Frame(panel.content, padding=14)
             f.pack(fill="both", expand=True)
             nb.add(panel, text=title)
             tabs[key] = f
+            if key == "look":
+                self.look_panel = panel
         self._tab_main(tabs["main"])
         self._tab_keys(tabs["keys"])
         self._tab_look(tabs["look"])
@@ -4160,7 +4316,7 @@ class App:
         top = ttk.Frame(f)
         top.pack(fill="x")
         self.status_var = tk.StringVar()
-        ttk.Label(top, textvariable=self.status_var, font=(FONT, 12, "bold")).pack(side="left")
+        ttk.Label(top, textvariable=self.status_var, font=(FONT, 11, "bold")).pack(side="left")
         ttk.Button(top, text="Пауза / Продовжити", command=self.toggle_pause).pack(side="right")
 
         self.hint_var = tk.StringVar()
@@ -4204,7 +4360,7 @@ class App:
                   wraplength=540).pack(anchor="w", pady=(4, 0))
 
         test = ttk.LabelFrame(f, text="Спробувати", padding=10)
-        test.pack(fill="x", pady=(12, 0))
+        test.pack(fill="x", pady=(12, 0), before=ocr)
         self.test_var = tk.StringVar(value="understatement")
         self.test_entry = ttk.Entry(test, textvariable=self.test_var)
         self.test_entry.pack(side="left", fill="x", expand=True)
@@ -4344,7 +4500,16 @@ class App:
 
     def _tab_look(self, f):
         after = self._refresh_preview
-        g = ttk.Frame(f)
+        ttk.Label(f, text="Збери зручну картку", font=(FONT, 13, "bold")).pack(anchor="w")
+        ttk.Label(f, text="Зміни одразу видно у відкритій картці. Власні переклади залишаються збереженими.",
+                  foreground="#61728b", wraplength=570).pack(anchor="w", pady=(4, 10))
+        presets = ttk.Frame(f)
+        presets.pack(fill="x", pady=(0, 12))
+        for key, label in (("compact", "Компактна"), ("balanced", "Збалансована"),
+                           ("detailed", "Докладна")):
+            ttk.Button(presets, text=label, command=lambda k=key: self.apply_card_preset(k)
+                       ).pack(side="left", padx=(0, 6))
+        g = ttk.LabelFrame(f, text="Розмір і оформлення", padding=10)
         g.pack(fill="x")
         rows = [
             ("Тема", lambda p: self._combo(p, self._var(tk.StringVar, ("popup", "theme"),
@@ -4366,20 +4531,41 @@ class App:
         self.color_btn = tk.Button(g, width=8, bg=cfg["popup"]["highlight_color"],
                                    command=self.pick_color)
         self.color_btn.grid(row=r, column=1, sticky="w", padx=10)
-        ttk.Checkbutton(f, text="Підсвічувати слово жовтим",
+        content = ttk.LabelFrame(f, text="Що показувати в картці", padding=10)
+        content.pack(fill="x", pady=(12, 0))
+        content.columnconfigure(0, weight=1)
+        content.columnconfigure(1, weight=1)
+        for i, (path, label) in enumerate(CARD_CONTENT_OPTIONS):
+            ttk.Checkbutton(content, text=label,
+                            variable=self._var(tk.BooleanVar, path, after=after)
+                            ).grid(row=i // 2, column=i % 2, sticky="w", padx=(0, 10), pady=4)
+        ttk.Label(content, text="Приклади й переклад визначення видно, коли увімкнені визначення.",
+                  foreground="#61728b", wraplength=540).grid(
+                      row=6, column=0, columnspan=2, sticky="w", pady=(6, 0))
+        ttk.Checkbutton(f, text="Підсвічувати знайдене слово на екрані",
                         variable=self._var(tk.BooleanVar, ("ocr", "highlight"))
                         ).pack(anchor="w", pady=(10, 0))
-        ttk.Checkbutton(f, text="Показувати речення з гри та його переклад (як у Translator)",
-                        variable=self._var(tk.BooleanVar, ("popup", "sentence"))
-                        ).pack(anchor="w", pady=(4, 0))
-        ttk.Checkbutton(f, text="Перекладати визначення зі словника",
-                        variable=self._var(tk.BooleanVar, ("popup", "translate_definition"))
-                        ).pack(anchor="w", pady=(4, 0))
-        ttk.Checkbutton(f, text="Кнопки озвучення 🔊 (потрібен pygame)",
-                        variable=self._var(tk.BooleanVar, ("popup", "btn_speak"), after=after)
-                        ).pack(anchor="w", pady=(4, 0))
-        ttk.Button(f, text="Показати приклад картки", command=self.show_preview).pack(
+        ttk.Button(f, text="Показати приклад картки", style="Accent.TButton",
+                   command=self.show_preview).pack(
             anchor="w", pady=(14, 0))
+
+    def open_card_settings(self):
+        self.show_window()
+        self.notebook.select(self.look_panel)
+
+    def apply_card_preset(self, name):
+        if name not in ("compact", "balanced", "detailed"):
+            return
+        compact = name == "compact"
+        for path, _label in CARD_CONTENT_OPTIONS:
+            visible = not compact or path not in {
+                ("sections", "definitions"), ("sections", "thesaurus"),
+                ("popup", "alternate_translations"), ("popup", "context_image")}
+            self._var(tk.BooleanVar, path, after=self._refresh_preview).set(visible)
+        self._var(tk.IntVar, ("popup", "font_size"), after=self._refresh_preview).set(
+            11 if name == "detailed" else 10)
+        self._var(tk.IntVar, ("popup", "width"), after=self._refresh_preview).set(
+            {"compact": 360, "balanced": 400, "detailed": 460}[name])
 
     def _tab_dict(self, f):
         box = ttk.LabelFrame(f, text="Словник", padding=10)
@@ -4388,14 +4574,11 @@ class App:
         self._combo(box, self._var(tk.StringVar, ("languages", "target"), LANG_NAMES,
                                    _card_cache.clear), LANG_NAMES, 18
                     ).grid(row=0, column=1, sticky="w", padx=10, pady=3)
-        for i, (key, text) in enumerate((("bilingual", "Секція «English – Ukrainian» (переклад)"),
-                                         ("definitions", "Секція «English» (визначення)"),
-                                         ("thesaurus", "Секція «English Thesaurus» (синоніми)")), start=1):
-            ttk.Checkbutton(box, text=text, variable=self._var(tk.BooleanVar, ("sections", key))
-                            ).grid(row=i, column=0, columnspan=2, sticky="w")
+        ttk.Button(box, text="Налаштувати вміст картки…", command=self.open_card_settings
+                   ).grid(row=1, column=0, columnspan=2, sticky="w", pady=6)
         for i, (key, text) in enumerate((("max_translations", "Варіантів перекладу на частину мови"),
                                          ("max_definitions", "Визначень у згорнутому вигляді"),
-                                         ("max_synonyms", "Синонімів у згорнутому вигляді")), start=4):
+                                         ("max_synonyms", "Синонімів у згорнутому вигляді")), start=2):
             ttk.Label(box, text=text).grid(row=i, column=0, sticky="w", pady=3)
             ttk.Spinbox(box, from_=1, to=20, width=5,
                         textvariable=self._var(tk.IntVar, ("dictionary", key),
@@ -5165,7 +5348,13 @@ class App:
         self.show_lookup(SAMPLE_CARD, None, anchor)
 
     def _refresh_preview(self):
-        if self.popup and self.popup.card is SAMPLE_CARD:
+        if self._preview_timer is not None:
+            self.root.after_cancel(self._preview_timer)
+        self._preview_timer = self.root.after(80, self._apply_card_appearance)
+
+    def _apply_card_appearance(self):
+        self._preview_timer = None
+        if self.popup:
             self.rerender(self.popup)
 
     def inside_main_window(self, x, y) -> bool:
@@ -5274,6 +5463,8 @@ class App:
         def stale():
             return token != self.active_token
 
+        if stale():
+            return
         if mode == "selection":
             self._lookup_selection(x, y, token)
             return
@@ -5313,7 +5504,7 @@ class App:
         ctx = _clean_sentence(hit.get("line_text", ""))  # речення з гри — піде на картку Anki
         if ctx.lower() == hit["word"].lower():
             ctx = ""
-        has_sentence = bool(cfg["popup"].get("sentence", True))
+        has_sentence = bool(cfg["popup"]["sentence"] or cfg["popup"]["sentence_translation"])
         short_ok = 2 <= len(ctx.split()) <= 40  # короткий рядок з першого розпізнавання — запасний варіант
         # поточний стан картки: його змінюють кілька потоків (переклад слова, речення,
         # визначення), тому кожна подія містить ПОВНИЙ знімок — одна не затирає іншу
@@ -5345,18 +5536,22 @@ class App:
                     events.put(("show", card, None, (x, y, x, y), token))
             else:
                 def sentence_job():  # повне речення (ширший OCR) і його переклад — паралельно зі словом
+                    if stale():
+                        return
                     sent = ""
                     try:
                         sent = find_sentence(hit, frozen)
                     except Exception as ex:
                         log(f"Пошук речення: {ex}")
+                    if stale():
+                        return
                     if not sent and short_ok:
                         sent = ctx
                     log(f"Речення: {len(sent.split())} слів" if sent else "Речення: не знайдено")
                     if sent:  # повне речення видно одразу, ще до перекладу
                         emit("update", {"sentence": sent, "context": sent})
                     tr = ""
-                    if sent and 2 <= len(sent.split()) <= 60:
+                    if sent and 2 <= len(sent.split()) <= 60 and cfg["popup"]["sentence_translation"]:
                         try:
                             tr = translate_text(clean_hud_line(sent))
                         except Exception as ex:
@@ -5381,7 +5576,7 @@ class App:
                 orig = card  # об'єкт із кешу: лише в нього дописуємо переклад визначення
                 def_en = _first_definition_text(orig)
                 need_def_tr = bool(def_en) and not orig.get("definition_tr") \
-                    and bool(cfg["popup"].get("translate_definition", True))
+                    and cfg["sections"]["definitions"] and cfg["popup"]["translate_definition"]
                 emit("update" if showed_partial else "show", {**orig, "def_tr_pending": need_def_tr})
                 if need_def_tr:  # пояснення рідною мовою — додається, щойно перекладеться
                     try:
@@ -5974,6 +6169,10 @@ class App:
     def quit(self):
         if not self._commit_or_discard_editor():
             return
+        self._flush_config_save()
+        if self._preview_timer is not None:
+            self.root.after_cancel(self._preview_timer)
+            self._preview_timer = None
         self._new_token()
         self._resume_game()
         save_card_cache()

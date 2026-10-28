@@ -17,10 +17,10 @@ if [[ -z "${DISPLAY:-}" ]]; then
     xvfb_pid=$!
     for attempt in {1..50}; do
         [[ -s "$display_file" ]] && break
-        kill -0 "$xvfb_pid" 2>/dev/null || { cat "$test_config/xvfb.log"; exit 1; }
+        kill -0 "$xvfb_pid" 2>/dev/null || { tail -n 30 "$test_config/xvfb.log"; exit 1; }
         sleep 0.1
     done
-    [[ -s "$display_file" ]] || { cat "$test_config/xvfb.log"; exit 1; }
+    [[ -s "$display_file" ]] || { tail -n 30 "$test_config/xvfb.log"; exit 1; }
     export DISPLAY=":$(cat "$display_file")"
 fi
 export XDG_CONFIG_HOME="$test_config"
