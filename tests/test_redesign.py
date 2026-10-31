@@ -3,6 +3,8 @@ import copy
 import queue
 import threading
 
+import pytest
+
 import word_lookup as w
 
 
@@ -119,3 +121,41 @@ def test_tk_escape_then_global_hook_keeps_card(app, card):
     popup.cancel_word_edit(object())
     app._handle(('esc',))
     assert app.popup is popup
+
+
+@pytest.mark.parametrize('width,font_size,scaling,word', [
+    (width, font_size, scaling, word)
+    for width in (300, 400)
+    for font_size in (11, 24)
+    for scaling in (1.0, 2.0)
+    for word in ('understatement', 'pneumonoultramicroscopicsilicovolcanoconiosis')
+])
+def test_headword_and_actions_fit_narrow_and_scaled_cards(app, card, width, font_size, scaling, word):
+    previous_scaling = app.root.tk.call('tk', 'scaling')
+    try:
+        app.root.tk.call('tk', 'scaling', scaling)
+        w.cfg['popup'].update(width=width, font_size=font_size)
+        card['word'] = word
+        app.show_lookup(card, None, (400, 200, 450, 230))
+        app.root.update()
+        popup = app.popup
+        title = popup.word_title
+        viewport = popup.viewport.canvas
+        left, right = viewport.winfo_rootx(), viewport.winfo_rootx() + viewport.winfo_width()
+        assert title.winfo_width() >= title.winfo_reqwidth()
+        assert title.winfo_height() >= title.winfo_reqheight()
+        assert left <= title.winfo_rootx()
+        assert title.winfo_rootx() + title.winfo_width() <= right
+        for button in popup.toolbar_buttons:
+            assert button.winfo_ismapped()
+            assert button.winfo_width() >= button.winfo_reqwidth()
+            assert left <= button.winfo_rootx()
+            assert button.winfo_rootx() + button.winfo_width() <= right
+            assert button.winfo_rooty() + button.winfo_height() <= title.winfo_rooty()
+        # Pin text gets longer; actions must still fit after this interaction.
+        popup.toggle_pin()
+        app.root.update()
+        assert all(button.winfo_width() >= button.winfo_reqwidth() for button in popup.toolbar_buttons)
+    finally:
+        app.close_all()
+        app.root.tk.call('tk', 'scaling', previous_scaling)

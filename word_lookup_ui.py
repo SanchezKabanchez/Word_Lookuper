@@ -196,21 +196,36 @@ class Popup:
         self._timeout_ms = int(timeout * 1000)
         self._arm_timeout()
 
-    def _toolbar(self, parent=None):
-        row = runtime.tk.Frame(parent or self.content, bg=self.th["bg"])
-        if parent is None:
-            row.pack(fill="x", pady=(0, 9))
-        else:
-            row.pack(side="right")
+    def _toolbar(self):
+        # Actions get their own row: a long headword must never compete with
+        # buttons for horizontal space. Narrow/high-DPI cards use two rows.
+        self.toolbar = row = runtime.tk.Frame(self.content, bg=self.th["bg"])
+        row.pack(fill="x", pady=(0, 9))
         self.pin_btn = self._tool_button(row, "Відкріпити" if self.pinned else "Закріпити",
                                          self.toggle_pin)
-        self.pin_btn.pack(side="left")
-        self._tool_button(row, "Копіювати", self.copy_translation).pack(side="left", padx=5)
-        self._tool_button(row, "✕", self.app.dismiss_lookup).pack(side="right")
+        copy_btn = self._tool_button(row, "Копіювати", self.copy_translation)
         self.options_btn = self._tool_button(row, "Вигляд ▾", self._show_options)
-        self.options_btn.pack(side="right", padx=5)
+        close_btn = self._tool_button(row, "✕", self.app.dismiss_lookup)
+        self.toolbar_buttons = (self.pin_btn, copy_btn, self.options_btn, close_btn)
+        self._toolbar_columns = None
+        self._arrange_toolbar(self.cw)
+        row.bind("<Configure>", lambda event: self._arrange_toolbar(event.width))
         self.win.bind("<Escape>", lambda _e: self.app.dismiss_lookup())
         self.win.bind("<Control-Return>", lambda _e: self.save_current())
+
+    def _arrange_toolbar(self, width):
+        sizes = [button.winfo_reqwidth() + 8 for button in self.toolbar_buttons]
+        columns = 4 if sum(sizes) <= width else 2
+        if columns == 2 and max(sum(sizes[:2]), sum(sizes[2:])) > width:
+            columns = 1
+        if columns == self._toolbar_columns:
+            return
+        self._toolbar_columns = columns
+        for col in range(4):
+            self.toolbar.columnconfigure(col, weight=1 if col < columns else 0)
+        for index, button in enumerate(self.toolbar_buttons):
+            button.grid(row=index // columns, column=index % columns,
+                        sticky="e" if index == 3 else "w", padx=4, pady=1)
 
     def _tool_button(self, parent, text, command):
         return runtime.tk.Button(parent, text=text, command=command, font=(runtime.FONT, 9),
@@ -256,6 +271,7 @@ class Popup:
     def toggle_pin(self):
         self.pinned = not self.pinned
         self.pin_btn.configure(text="Відкріпити" if self.pinned else "Закріпити")
+        self._arrange_toolbar(self.toolbar.winfo_width())
         self._arm_timeout()
 
     def _arm_timeout(self):
@@ -305,12 +321,14 @@ class Popup:
 
     def headword(self, word, with_audio, show_phonetic=True, with_save=False):
         th = self.th
+        self._toolbar()
         row = runtime.tk.Frame(self.content, bg=th["bg"])
         row.pack(fill="x", padx=(6, 0), pady=(0, 3))
-        self._toolbar(row)
         self.word_title = runtime.tk.Label(row, text=word, font=(runtime.FONT, self.fs + 10, "bold"),
-                                   fg=th["fg"], bg=th["bg"], cursor="hand2")
-        self.word_title.pack(side="left")
+                                   fg=th["fg"], bg=th["bg"], cursor="hand2", anchor="w",
+                                   justify="left", wraplength=max(1, self.cw - 6), bd=0,
+                                   padx=0, highlightthickness=0)
+        self.word_title.pack(fill="x")
         self.word_title.bind("<Button-1>", self.edit_word)
         self.correction_row = runtime.tk.Frame(self.content, bg=th["bg"])
         self.word_var = runtime.tk.StringVar(master=self.win, value=word)
