@@ -48,7 +48,7 @@ def test_guard_really_suspends_and_resumes_owned_process(owned_process):
 
 
 def test_watchdog_timeout_recovers_without_ui(owned_process):
-    guard = w.GamePauseGuard(owned_process.pid, owned_process.create_time(), 0.4)
+    guard = w.GamePauseGuard(owned_process.pid, owned_process.create_time(), 1.5)
     try:
         guard.start()
         assert owned_process.status() == psutil.STATUS_STOPPED
@@ -72,7 +72,7 @@ def test_pipe_closed_recovers_target(owned_process):
 
 
 def test_parent_crash_recovers_target(owned_process):
-    code = ("import word_lookup as w, time; "
+    code = ("import word_lookup_pause as w, time; "
             f"g=w.GamePauseGuard({owned_process.pid},{owned_process.create_time()},10).start(); "
             "print('PAUSED_CHILD',flush=True); time.sleep(60)")
     parent = subprocess.Popen([sys.executable, "-u", "-c", code], stdout=subprocess.PIPE,
@@ -138,13 +138,13 @@ class FakeGuard:
         return True, "RESUMED"
 
 
-def test_selection_keeps_pause_until_popup_dismissed(app, monkeypatch):
+def test_selection_resumes_before_ocr_or_popup(app, monkeypatch):
     guard = app._game_pause = FakeGuard()
     monkeypatch.setattr(app, "_region_thread", lambda *args: None)
     app._region_done(("point", 400, 400))
-    assert guard.active
-    app.dismiss_lookup()
     assert not guard.active and app._game_pause is None
+    app.dismiss_lookup()
+    assert guard.released == 1
 
 
 def test_cancel_and_error_release_pause(app):
@@ -199,3 +199,95 @@ def test_wrong_foreground_does_not_start_overlay(app, monkeypatch):
     monkeypatch.setattr(w, "RegionSelector", lambda *args: called.append(True))
     app.start_region_select()
     assert called == [] and app._game_pause is None
+
+
+def test_capture_resumes_game_before_image_render_or_ocr(app, monkeypatch):
+    from PIL import Image
+    guard = app._game_pause = FakeGuard()
+    def grab(*args):
+        assert guard.active
+        return Image.new("RGB", (1280, 800), "#111318"), 0, 0
+    monkeypatch.setattr(w, "_grab", grab)
+    selector = w.RegionSelector(app, lambda *args: None)
+    try:
+        assert selector.frozen is not None
+        assert not guard.active
+    finally:
+        selector.finish(None)
+
+
+def test_free_cursor_uses_snapshot_and_resumes_before_selection(app, monkeypatch):
+    from PIL import Image
+    guard = app._game_pause = FakeGuard()
+    monkeypatch.setattr(w, "_grab", lambda *args: (Image.new("RGB", (1280, 800)), 0, 0))
+    completed = []
+    overlay = w.FreeCursorOverlay(app, (400, 400), lambda *args: completed.append(args))
+    assert not guard.active
+    assert overlay.frozen is not None
+    overlay.finish((420, 400))
+    assert completed[0][0] == (420, 400)
+    assert completed[0][1] is overlay.frozen
+
+
+def test_frozen_watchdog_command_uses_dedicated_dispatch(monkeypatch, tmp_path):
+    import word_lookup_pause as pause
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    command = pause.watchdog_command(1, 2, 3, 4, 20, tmp_path)
+    assert command[:2] == [sys.executable, "--pause-watchdog"]
+    assert "-c" not in command
+
+
+def test_recovery_after_both_parent_and_watchdog_are_killed(owned_process, tmp_path):
+    import word_lookup_pause as pause
+    folder = str(tmp_path)
+    code = ("import word_lookup_pause as p,time; "
+            f"g=p.GamePauseGuard({owned_process.pid},{owned_process.create_time()},20,"
+            f"recovery_dir={folder!r}).start(); "
+            "print(g.process.pid,flush=True); time.sleep(60)")
+    parent = subprocess.Popen([sys.executable, "-u", "-c", code], stdout=subprocess.PIPE,
+                              stderr=subprocess.PIPE, text=True)
+    messages = queue.Queue()
+    threading.Thread(target=lambda: messages.put(parent.stdout.readline()), daemon=True).start()
+    try:
+        watchdog_pid = int(messages.get(timeout=6).strip())
+        assert owned_process.status() == psutil.STATUS_STOPPED
+        assert list(tmp_path.glob("*.json"))
+        watchdog = psutil.Process(watchdog_pid)
+        watchdog.kill()
+        wait_until(lambda: not watchdog.is_running() or watchdog.status() == psutil.STATUS_ZOMBIE)
+        parent.kill()
+        parent.wait(timeout=4)
+        assert owned_process.status() == psutil.STATUS_STOPPED
+        outcomes = pause.recover_paused_games(folder)
+        assert any("Відновлено" in outcome for outcome in outcomes)
+        assert owned_process.status() != psutil.STATUS_STOPPED
+        assert not list(tmp_path.glob("*.json"))
+    finally:
+        if parent.poll() is None:
+            parent.kill()
+            parent.wait(timeout=4)
+        parent.stdout.close()
+        parent.stderr.close()
+
+
+def test_recovery_never_resumes_reused_pid_or_live_owned_pause(owned_process, tmp_path):
+    import word_lookup_pause as pause
+    guard = pause.GamePauseGuard(owned_process.pid, owned_process.create_time(), 20,
+                                recovery_dir=str(tmp_path)).start()
+    try:
+        assert pause.recover_paused_games(str(tmp_path)) == []
+        assert owned_process.status() == psutil.STATUS_STOPPED
+        assert list(tmp_path.glob("*.json"))
+    finally:
+        guard.release()
+    owned_process.suspend()
+    try:
+        record = dict(pid=owned_process.pid, created=owned_process.create_time() - 1,
+                      parent_pid=2147483647, parent_created=1,
+                      watchdog_pid=2147483646, watchdog_created=1)
+        pause._write_record(tmp_path / "stale.json", record)
+        assert pause.recover_paused_games(str(tmp_path))
+        assert owned_process.status() == psutil.STATUS_STOPPED
+        assert not list(tmp_path.glob("*.json"))
+    finally:
+        owned_process.resume()

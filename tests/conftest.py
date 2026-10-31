@@ -1,4 +1,5 @@
 import copy
+import gc
 import queue
 
 import pytest
@@ -23,10 +24,13 @@ def isolated_data(tmp_path, monkeypatch):
 
 @pytest.fixture
 def app():
+    # Tk/pynput own cycles; release prior test controllers before X11 client limit.
+    gc.collect()
     instance = w.App()
     instance.root.update()
     yield instance
     instance.quit()
+    gc.collect()
 
 
 @pytest.fixture

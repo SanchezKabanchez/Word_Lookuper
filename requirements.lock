@@ -6,10 +6,14 @@ cached-property==2.0.1
     # via genanki
 certifi==2026.10.23
     # via requests
+cffi==2.1.1
+    # via cryptography
 charset-normalizer==3.5.2
     # via requests
 chevron==0.14.0
     # via genanki
+cryptography==50.0.2
+    # via secretstorage
 deep-translator==1.11.4
     # via -r requirements.txt
 evdev==2.0.0
@@ -22,6 +26,22 @@ idna==3.20
     # via requests
 iniconfig==2.3.1
     # via pytest
+jaraco-classes==3.4.0
+    # via keyring
+jaraco-context==6.1.2
+    # via keyring
+jaraco-functools==4.6.0
+    # via keyring
+jeepney==0.9.0
+    # via
+    #   keyring
+    #   secretstorage
+keyring==25.7.0
+    # via -r requirements.txt
+more-itertools==11.2.1
+    # via
+    #   jaraco-classes
+    #   jaraco-functools
 mss==10.2.0
     # via -r requirements.txt
 packaging==26.3
@@ -36,6 +56,8 @@ pluggy==1.7.0
     # via pytest
 psutil==7.2.2
     # via -r requirements.txt
+pycparser==3.12
+    # via cffi
 pygame==2.6.1
     # via -r requirements.txt
 pygments==2.21.0
@@ -56,6 +78,8 @@ requests==2.34.2
     # via
     #   -r requirements.txt
     #   deep-translator
+secretstorage==3.5.0
+    # via keyring
 six==1.17.0
     # via
     #   pynput

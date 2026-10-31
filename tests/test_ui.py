@@ -1,3 +1,5 @@
+import os
+import sys
 from types import SimpleNamespace
 
 import pytest
@@ -37,7 +39,8 @@ def test_long_popup_fits_screen_and_scrolls(app, card):
     popup = app.popup
     assert popup.win.winfo_y() >= 0
     assert popup.win.winfo_x() >= 0
-    assert popup.win.winfo_y() + popup.win.winfo_height() <= 800
+    area = w.screen_workarea(app.root, popup.anchor)
+    assert popup.win.winfo_y() + popup.win.winfo_height() <= area[3]
     assert popup.viewport.canvas.yview()[1] < 1.0
     before = popup.viewport.canvas.yview()[0]
     popup.viewport._wheel(SimpleNamespace(x_root=popup.win.winfo_x() + 40,
@@ -96,7 +99,10 @@ def test_copy_translation_really_reaches_clipboard(app, card):
 
 def test_tesseract_recognizes_text_from_frozen_image():
     image = Image.new("RGB", (600, 100), "white")
-    font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 32)
+    font_path = (os.path.join(os.environ.get("WINDIR", r"C:\Windows"), "Fonts", "arial.ttf")
+                 if sys.platform.startswith("win") else
+                 "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")
+    font = ImageFont.truetype(font_path, 32)
     ImageDraw.Draw(image).text((20, 20), "Hello wonderful world", fill="black", font=font)
     w.cfg["ocr"]["engine"] = "tesseract"
     w._engine_cache["t"] = 0
