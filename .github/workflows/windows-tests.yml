@@ -36,7 +36,7 @@ jobs:
           $env:APPDATA = Join-Path $env:RUNNER_TEMP 'word-lookup-tests'
           $results = Join-Path $env:RUNNER_TEMP 'word-lookup-artifacts'
           New-Item -ItemType Directory -Force -Path $results | Out-Null
-          python -m pytest -vv --tb=short --durations=15 -o faulthandler_timeout=60 --junitxml="$results/windows-results.xml"
+          python -m pytest -vv --tb=short --durations=15 --timeout=60 --timeout-method=thread -o faulthandler_timeout=45 --junitxml="$results/windows-results.xml"
           exit $LASTEXITCODE
       - name: Retain test results
         if: always()

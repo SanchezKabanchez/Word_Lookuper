@@ -174,7 +174,10 @@ pytest==9.2.0
     # via
     #   -r requirements-tools.txt
     #   pytest-cov
+    #   pytest-timeout
 pytest-cov==7.1.0
+    # via -r requirements-tools.txt
+pytest-timeout==2.4.0
     # via -r requirements-tools.txt
 python-xlib==0.33 ; 'linux' in sys_platform
     # via pynput
