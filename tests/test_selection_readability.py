@@ -6,6 +6,7 @@ import pytest
 from PIL import Image, ImageDraw, ImageFont
 
 import word_lookup as w
+import word_lookup_selection as selection
 
 
 def wait_for(root, predicate, timeout=3):
@@ -120,13 +121,20 @@ def test_long_ocr_status_fits_small_screen_and_restores_text_after_resize(light_
 
 
 def test_hint_moves_away_from_selected_top_word_and_returns_for_lower_word(app, monkeypatch):
-    image = Image.new('RGB', (1280, 800), 'white')
+    width, height = app.root.winfo_screenwidth(), app.root.winfo_screenheight()
+    image = Image.new('RGB', (width, height), 'white')
+    # Keep the capture and monitor in the same coordinate space. The hint is
+    # centered, so the top word must overlap its actual horizontal position.
+    monkeypatch.setattr(selection, '_active_monitor_bounds',
+                        lambda *_args: (0, 0, width, height))
+    top_position = (width // 2, 24)
+    lower_position = (width // 2, height - 80)
     draw = ImageDraw.Draw(image)
     font = ImageFont.load_default(size=36)
-    first = draw.textbbox((140, 24), 'changing', font=font)
-    second = draw.textbbox((140, 720), 'world', font=font)
-    draw.text((140, 24), 'changing', font=font, fill='black')
-    draw.text((140, 720), 'world', font=font, fill='black')
+    first = draw.textbbox(top_position, 'changing', font=font)
+    second = draw.textbbox(lower_position, 'world', font=font)
+    draw.text(top_position, 'changing', font=font, fill='black')
+    draw.text(lower_position, 'world', font=font, fill='black')
     monkeypatch.setattr(w, '_grab', lambda *args, **kwargs: (image, 0, 0))
     monkeypatch.setattr(w, 'ocr_region', lambda *args, **kwargs: [w.W('changing', *first, 0),
                                                                w.W('world', *second, 1)])
