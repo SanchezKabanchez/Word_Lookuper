@@ -125,7 +125,11 @@ def test_library_headers_and_filters_fit_scaled_fonts(app, scaling):
     try:
         app.root.tk.call("tk", "scaling", scaling)
         app.open_saved_words()
+        # Finish the initial Map/after_idle placement before simulating a user
+        # resize and sash drag; otherwise initialization can replace the drag.
+        app.root.update()
         app.saved_win.geometry("980x600")
+        app.root.update()
         app.library_panes.sash_place(0, 300, 0)
         app.root.update()
         header = w.tkfont.Font(root=app.root, font=(w.FONT, 9))
