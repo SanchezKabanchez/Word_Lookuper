@@ -38,7 +38,7 @@ def test_failed_translation_is_retryable_and_cache_is_bounded(tmp_path):
     assert cache.translate("bad", lambda: "good", path=path, limit=2) == "good"
     for key in ["two", "three"]:
         cache.translate(key, lambda: key, path=path, limit=2)
-    assert list(json.loads((tmp_path / "translations.json").read_text())["translations"]) == ["two", "three"]
+    assert list(json.loads((tmp_path / "translations.json").read_text(encoding="utf-8"))["translations"]) == ["two", "three"]
     cache.clear(path)
     assert not (tmp_path / "translations.json").exists()
 

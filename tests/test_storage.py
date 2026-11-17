@@ -1,3 +1,4 @@
+from contextlib import closing
 import json
 import os
 import sqlite3
@@ -28,7 +29,7 @@ def test_atomic_write_preserves_previous_file_on_failure(tmp_path, monkeypatch):
     monkeypatch.setattr(w.os, "replace", fail)
     with pytest.raises(OSError):
         w.atomic_json_write(path, {"new": True})
-    assert json.loads((tmp_path / "settings.json").read_text()) == {"old": True}
+    assert json.loads((tmp_path / "settings.json").read_text(encoding="utf-8")) == {"old": True}
     assert sorted(p.name for p in tmp_path.iterdir()) == ["settings.json"]
 
 
@@ -116,7 +117,7 @@ def test_corrupt_existing_progress_is_not_overwritten(card):
     path = Path(w._saved_words_path())
     path.write_text("broken progress", encoding="utf-8")
     assert not w.add_saved_word(card)
-    assert path.read_text() == "broken progress"
+    assert path.read_text(encoding="utf-8") == "broken progress"
 
 
 def test_profile_anki_tag_survives_restart_and_takes_precedence(card):
@@ -150,7 +151,7 @@ def test_anki_package_contains_fields_context_and_media(card, tmp_path):
         assert entry["image_file"] in media.values()
         assert all(archive.read(key).startswith(b"\xff\xd8") for key in media)
         archive.extract("collection.anki2", tmp_path)
-    with sqlite3.connect(tmp_path / "collection.anki2") as db:
+    with closing(sqlite3.connect(tmp_path / "collection.anki2")) as db:
         fields = db.execute("select flds from notes").fetchone()[0]
         assert "применшення" in fields
         assert "understatement" in fields

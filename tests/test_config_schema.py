@@ -29,18 +29,18 @@ def test_corrupt_configuration_is_preserved_before_defaults_and_new_save(raw):
     assert not path.exists()
     assert path.with_name(path.name + ".corrupt").read_bytes() == raw
     assert w.save_config(config)
-    assert json.loads(path.read_text())["version"] == w.DEFAULT_CONFIG["version"]
+    assert json.loads(path.read_text(encoding="utf-8"))["version"] == w.DEFAULT_CONFIG["version"]
 
 
 def test_quarantine_does_not_replace_existing_corrupt_copy(tmp_path):
     path = tmp_path / "config.json"
-    path.write_text("second invalid file")
+    path.write_text("second invalid file", encoding="utf-8")
     previous = tmp_path / "config.json.corrupt"
-    previous.write_text("first invalid file")
+    previous.write_text("first invalid file", encoding="utf-8")
     assert load_settings(str(path)).writable
-    assert previous.read_text() == "first invalid file"
+    assert previous.read_text(encoding="utf-8") == "first invalid file"
     copies = list(tmp_path.glob("config.json.corrupt.*"))
-    assert len(copies) == 1 and copies[0].read_text() == "second invalid file"
+    assert len(copies) == 1 and copies[0].read_text(encoding="utf-8") == "second invalid file"
 
 
 def test_failed_quarantine_blocks_save_of_defaults(monkeypatch):
@@ -60,7 +60,7 @@ def test_failed_quarantine_blocks_save_of_defaults(monkeypatch):
 
 def test_newer_schema_is_never_overwritten():
     path = Path(w.config_path())
-    path.write_text('{"version":999,"future_settings":{"data":true}}')
+    path.write_text('{"version":999,"future_settings":{"data":true}}', encoding="utf-8")
     original = path.read_bytes()
     config = w.load_config()
     assert not w.save_config(config)
@@ -71,7 +71,7 @@ def test_types_ranges_and_enumerations_are_explicit(tmp_path):
     path = tmp_path / "config.json"
     path.write_text(json.dumps({"version": 8, "popup": {"font_size": True, "opacity": 1,
         "width": 99999, "theme": "invalid", "highlight_color": "not-a-colour"},
-        "ocr": {"cpu_threads": False, "region_w": -200}, "auto": {"double_click_s": .25}}))
+        "ocr": {"cpu_threads": False, "region_w": -200}, "auto": {"double_click_s": .25}}), encoding="utf-8")
     config = load_settings(str(path)).values
     assert config["popup"]["font_size"] == DEFAULT_CONFIG["popup"]["font_size"]
     assert config["popup"]["opacity"] == 1.0
@@ -87,7 +87,7 @@ def test_import_does_not_read_configuration_or_keychain(tmp_path):
     folder = tmp_path / "isolated-profile"
     folder.mkdir()
     config = folder / "config.json"
-    config.write_text('{"deepl":{"key":"synthetic-legacy-key"}}')
+    config.write_text('{"deepl":{"key":"synthetic-legacy-key"}}', encoding="utf-8")
     program = '''import builtins, os
 import word_lookup_secrets as secrets
 def forbidden():

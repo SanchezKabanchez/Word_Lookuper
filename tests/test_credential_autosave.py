@@ -78,7 +78,7 @@ def test_changed_key_is_written_once_then_unrelated_saves_skip_backend(monkeypat
     assert w.save_config(config)
     assert vault.calls == calls_after_change
     assert vault.value == config["deepl"]["key"]
-    assert "replacement-secure-test-key" not in Path(w.config_path()).read_text()
+    assert "replacement-secure-test-key" not in Path(w.config_path()).read_text(encoding="utf-8")
 
 
 def test_failed_key_save_is_not_retried_until_explicit_retry(monkeypatch, capsys):
@@ -154,7 +154,7 @@ def test_legacy_migration_failure_is_attempted_once_and_never_written_to_json(mo
     failed_calls = list(vault.calls)
     assert w.save_config(config)
     assert vault.calls == failed_calls
-    assert sensitive not in Path(w.config_path()).read_text()
+    assert sensitive not in Path(w.config_path()).read_text(encoding="utf-8")
     assert config["deepl"]["key"] == sensitive
     vault.fail_write = False
     assert w.save_config(config, retry_key=True)
@@ -171,7 +171,7 @@ def test_secure_vault_override_only_cleans_up_stale_legacy_json(monkeypatch):
     assert w.save_config(config)
     assert vault.calls == []
     assert saved_json()["deepl"]["key"] == ""
-    assert "obsolete-legacy-json-key" not in Path(w.config_path()).read_text()
+    assert "obsolete-legacy-json-key" not in Path(w.config_path()).read_text(encoding="utf-8")
 
 
 def test_json_failure_does_not_repeat_an_already_successful_vault_write(monkeypatch):

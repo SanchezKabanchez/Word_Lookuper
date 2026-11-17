@@ -10,11 +10,11 @@ from wl_network import TranslationCache
 
 def test_legacy_library_is_read_and_next_save_writes_versioned_envelope(card):
     path = Path(w._saved_words_path())
-    path.write_text('[{"word":"legacy","notes":"keep"}]')
+    path.write_text('[{"word":"legacy","notes":"keep"}]', encoding="utf-8")
     assert w.load_saved_words()[0]["notes"] == "keep"
-    assert isinstance(json.loads(path.read_text()), list)
+    assert isinstance(json.loads(path.read_text(encoding="utf-8")), list)
     assert w.add_saved_word(card)
-    payload = json.loads(path.read_text())
+    payload = json.loads(path.read_text(encoding="utf-8"))
     assert payload["schema"] == 1 and payload["kind"] == "wordlookup.library"
     assert len(decode_words(payload)) == 2
 
@@ -26,7 +26,7 @@ def test_future_library_schema_cannot_be_saved_or_repaired_over(card, tmp_path):
     assert w.load_saved_words() == [] and w.saved_words_error()
     assert not w.add_saved_word(card)
     source = tmp_path / "older.json"
-    source.write_text('[{"word":"older"}]')
+    source.write_text('[{"word":"older"}]', encoding="utf-8")
     with pytest.raises(UnsupportedSchema):
         w.restore_saved_words(source)
     assert path.read_bytes() == original
@@ -41,16 +41,16 @@ def test_future_cache_schema_survives_app_exit_until_explicit_clear():
     assert path.read_bytes() == original
     w.clear_card_cache()
     w.save_card_cache()
-    assert decode_cards(json.loads(path.read_text())) == {}
+    assert decode_cards(json.loads(path.read_text(encoding="utf-8"))) == {}
 
 
 def test_future_text_cache_is_preserved_until_explicit_clear(tmp_path):
     path = tmp_path / "translations.json"
     original = '{"schema":999,"kind":"wordlookup.text-cache","translations":{}}'
-    path.write_text(original)
+    path.write_text(original, encoding="utf-8")
     cache = TranslationCache()
     assert cache.translate("word", lambda: "fresh", path=str(path)) == "fresh"
-    assert path.read_text() == original
+    assert path.read_text(encoding="utf-8") == original
     cache.clear(str(path))
     cache.translate("another", lambda: "new value", path=str(path))
-    assert json.loads(path.read_text())["schema"] == 1
+    assert json.loads(path.read_text(encoding="utf-8"))["schema"] == 1

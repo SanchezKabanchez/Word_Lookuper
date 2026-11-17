@@ -135,13 +135,17 @@ def test_card_settings_shortcut_selects_appearance_tab(app):
     assert app.notebook.select() == str(app.look_panel)
 
 
-def test_popup_menu_stays_open_and_edits_live_preferences(app, card):
+def test_popup_options_pin_card_and_edit_live_preferences(app, card, monkeypatch):
+    # Native Windows popup posting enters an OS modal loop. Keep that OS call
+    # outside this controller test while retaining the real Tk menu/variables.
+    posted = []
+    monkeypatch.setattr(w.tk.Menu, "tk_popup", lambda menu, *position: posted.append((menu, position)))
     app.show_lookup(card, None)
     popup = app.popup
     popup._show_options()
     app.root.update()
     menu = popup.options_menu
-    assert menu.winfo_exists() and menu.winfo_ismapped()
+    assert menu.winfo_exists() and posted[0][0] is menu
     assert popup.pinned
     # A menu can extend beyond the card; a queued global click must preserve it.
     app._handle(("press", 0, 0, "left", set()))

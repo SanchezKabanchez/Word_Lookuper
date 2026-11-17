@@ -49,7 +49,7 @@ def test_fps_summary_uses_real_csv_intervals_and_largest_swap_chain(tmp_path):
     spec.loader.exec_module(module)
     capture = tmp_path / "synthetic-presentmon.csv"
     capture.write_text("ProcessID,SwapChainAddress,msBetweenPresents\n"
-                       "1,main,10\n1,main,10\n1,main,20\n1,secondary,100\n1,main,NA\n")
+                       "1,main,10\n1,main,10\n1,main,20\n1,secondary,100\n1,main,NA\n", encoding="utf-8")
     result = module.summarize(capture)
     assert result["frames"] == 3 and result["swap_chain"] == "main"
     assert result["average_fps"] == pytest.approx(75)

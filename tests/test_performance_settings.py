@@ -44,7 +44,7 @@ def test_cpu_budget_controls_change_live_settings_without_enabling_pause(app):
 def test_v7_settings_gain_budgets_but_keep_saved_pause_limit(monkeypatch, tmp_path):
     import json
     from pathlib import Path
-    Path(w.config_path()).write_text(json.dumps({'version':7,'freeze':{'pause_game':True,'pause_seconds':20}}))
+    Path(w.config_path()).write_text(json.dumps({'version':7,'freeze':{'pause_game':True,'pause_seconds':20}}), encoding="utf-8")
     monkeypatch.setattr('word_lookup_secrets.load_key', lambda: '')
     loaded=w.load_config()
     assert loaded['freeze']['pause_game']

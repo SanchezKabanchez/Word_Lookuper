@@ -82,7 +82,7 @@ def test_gettext_catalog_compiles_and_is_utf8(tmp_path):
 
 def test_presentmon_summary_uses_real_frame_intervals(tmp_path):
     sample = tmp_path / 'capture.csv'
-    sample.write_text('ProcessID,SwapChainAddress,msBetweenPresents\n1,a,10\n1,a,20\n1,a,30\n2,b,5\n')
+    sample.write_text('ProcessID,SwapChainAddress,msBetweenPresents\n1,a,10\n1,a,20\n1,a,30\n2,b,5\n', encoding="utf-8")
     result = summarize(sample)
     assert result['frames'] == 3
     assert result['average_fps'] == 50

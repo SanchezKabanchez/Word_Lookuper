@@ -45,12 +45,12 @@ def test_standard_log_rotation_redacts_before_writing(tmp_path, capsys):
     for index in range(8):
         logger.write(f"event {index}: private-key " + "x" * 60)
     assert path.exists() and Path(str(path) + ".1").exists()
-    assert "private-key" not in path.read_text() + Path(str(path) + ".1").read_text()
+    assert "private-key" not in path.read_text(encoding="utf-8") + Path(str(path) + ".1").read_text(encoding="utf-8")
     assert "private-key" not in capsys.readouterr().out
     logger.clear()
     assert not path.exists() and not Path(str(path) + ".1").exists()
     logger.write("after clear")
-    assert "after clear" in path.read_text()
+    assert "after clear" in path.read_text(encoding="utf-8")
 
 
 def test_tk_callback_exceptions_reach_redacted_log(app):
@@ -59,7 +59,7 @@ def test_tk_callback_exceptions_reach_redacted_log(app):
         raise ValueError("synthetic-callback-secret in callback")
     app.root.after_idle(broken_callback)
     app.root.update()
-    content = Path(w.log_path()).read_text()
+    content = Path(w.log_path()).read_text(encoding="utf-8")
     assert "Tk callback" in content and "ValueError" in content
     assert "synthetic-callback-secret" not in content
 
@@ -84,7 +84,7 @@ def test_thread_and_system_hooks_log_without_console(tmp_path, monkeypatch):
             raise ValueError("secret-value in main")
         except ValueError:
             sys.excepthook(*sys.exc_info())
-        content = path.read_text()
+        content = path.read_text(encoding="utf-8")
         assert "synthetic-worker" in content and "main" in content
         assert "secret-value" not in content
     finally:

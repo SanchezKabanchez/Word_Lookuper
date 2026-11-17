@@ -178,8 +178,8 @@ def test_text_export_uses_one_snapshot_when_original_entries_change(tmp_path, mo
     monkeypatch.setattr(w, '_anki_back', back)
     path = tmp_path / 'words.txt'
     w.export_anki_txt(entries, str(path))
-    assert 'second\tbefore\n' in path.read_text()
-    assert 'changed concurrently' not in path.read_text()
+    assert 'second\tbefore\n' in path.read_text(encoding="utf-8")
+    assert 'changed concurrently' not in path.read_text(encoding="utf-8")
 
 
 def test_empty_dictionary_result_does_not_disable_future_export_enrichment(card, monkeypatch):

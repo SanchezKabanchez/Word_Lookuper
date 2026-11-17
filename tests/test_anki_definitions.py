@@ -1,4 +1,5 @@
 """Clearing an English definition must also hide its stale translated text."""
+from contextlib import closing
 import sqlite3
 import zipfile
 
@@ -16,10 +17,10 @@ def test_definition_translation_follows_definition_in_txt_and_apkg(tmp_path, def
     w.export_anki_apkg([entry], str(apkg))
     with zipfile.ZipFile(apkg) as archive:
         archive.extract("collection.anki2", tmp_path)
-    with sqlite3.connect(tmp_path / "collection.anki2") as db:
+    with closing(sqlite3.connect(tmp_path / "collection.anki2")) as db:
         fields = db.execute("select flds from notes").fetchone()[0].split("\x1f")
     assert fields[1] == "опора"
-    assert (entry["definition_tr"] in txt.read_text()) is bool(definition.strip())
+    assert (entry["definition_tr"] in txt.read_text(encoding="utf-8")) is bool(definition.strip())
     assert (entry["definition_tr"] in fields[2]) is bool(definition.strip())
     if not definition.strip():
         assert fields[2] == ""

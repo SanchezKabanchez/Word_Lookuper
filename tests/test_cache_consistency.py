@@ -37,7 +37,7 @@ def test_text_cache_clear_does_not_join_or_restore_an_older_inflight_result(tmp_
         assert old.result(timeout=2) == "before clear"
         assert fresh.result(timeout=2) == "after clear"
     assert cache.translate("key", lambda: pytest.fail("Fresh cache result was lost"), path=path) == "after clear"
-    assert json.loads((tmp_path / "translations.json").read_text())["translations"] == {"key": "after clear"}
+    assert json.loads((tmp_path / "translations.json").read_text(encoding="utf-8"))["translations"] == {"key": "after clear"}
 
 
 def test_text_cache_clear_without_new_lookup_leaves_deleted_file_deleted(tmp_path):

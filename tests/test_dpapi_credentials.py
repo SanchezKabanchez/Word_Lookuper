@@ -73,7 +73,7 @@ def test_vault_failure_saves_key_and_restores_after_new_config_load(monkeypatch,
     assert w.save_config(config)
     assert "DPAPI" in w._credential_status
     assert key.encode() not in secrets._key_path().read_bytes()
-    assert json.loads(Path(w.config_path()).read_text())["deepl"]["key"] == ""
+    assert json.loads(Path(w.config_path()).read_text(encoding="utf-8"))["deepl"]["key"] == ""
 
     # Forget session metadata. A fresh settings load must recover from disk.
     w._credential_state.clear()
@@ -164,7 +164,7 @@ def test_failed_dpapi_encryption_keeps_previous_ciphertext_and_reports_failure(m
     assert secrets._key_path().read_bytes() == previous
     assert attempts == [True]
     assert key not in capsys.readouterr().out
-    assert key not in Path(w.config_path()).read_text()
+    assert key not in Path(w.config_path()).read_text(encoding="utf-8")
     assert not list(secrets._key_path().parent.glob(".wordlookup-key-*"))
 
 

@@ -102,7 +102,7 @@ def test_valid_empty_library_does_not_resurrect_deleted_words_from_backup():
     write_library([{"word": "deleted-intentionally"}], path.with_suffix(".backups") / "saved_words-0001.json")
     assert w.reload_saved_words() == []
     assert not w.saved_words_error()
-    assert path.read_text() == "[]"
+    assert path.read_text(encoding="utf-8") == "[]"
 
 
 def test_import_merges_missing_words_preserving_edits_progress_and_source(tmp_path):
