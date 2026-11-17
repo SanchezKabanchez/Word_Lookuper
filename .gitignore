@@ -1,0 +1,25 @@
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+*.zip
+*.dpapi
+.wordlookup-key-*
+# Generated previews and verification results belong to CI artifacts.
+/artifacts/
+/screenshots/
+/preview/
+/verification/
+/test-results/
+*-results.xml
+junit*.xml
+pytest*.xml
+
+/build/
+/dist/
+*.egg-info/
+.coverage*
+htmlcov/
+coverage.xml
+.mypy_cache/
+.ruff_cache/

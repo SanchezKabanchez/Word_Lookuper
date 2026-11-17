@@ -1,0 +1,66 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "word-lookup-desktop"
+dynamic = ["version", "dependencies"]
+description = "Desktop OCR dictionary and study library for single-player games"
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+license = "LicenseRef-All-Rights-Reserved"
+license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md"]
+authors = [{name = "Word Lookup contributors"}]
+
+[project.optional-dependencies]
+offline = ["ctranslate2==4.9.0", "sentencepiece==0.2.3"]
+
+[project.gui-scripts]
+word-lookup = "word_lookup_launcher:main"
+
+[tool.setuptools.dynamic]
+version = {attr = "word_lookup_version.__version__"}
+dependencies = {file = ["requirements.txt"]}
+
+[tool.setuptools]
+include-package-data = true
+py-modules = ["wl_network", "word_lookup", "word_lookup_anki", "word_lookup_application", "word_lookup_cache", "word_lookup_compat", "word_lookup_config", "word_lookup_credentials", "word_lookup_debug", "word_lookup_diagnostics", "word_lookup_dpi", "word_lookup_event_controller", "word_lookup_geometry", "word_lookup_i18n", "word_lookup_input", "word_lookup_input_controller", "word_lookup_instance", "word_lookup_jobs", "word_lookup_launcher", "word_lookup_lexicon", "word_lookup_library", "word_lookup_local_models", "word_lookup_logging", "word_lookup_models", "word_lookup_network", "word_lookup_ocr", "word_lookup_ocr_budget", "word_lookup_offline", "word_lookup_package", "word_lookup_paths", "word_lookup_pause", "word_lookup_pause_controller", "word_lookup_platform", "word_lookup_preferences", "word_lookup_profiles", "word_lookup_profiles_ui", "word_lookup_providers", "word_lookup_schemas", "word_lookup_scrolling", "word_lookup_search_controller", "word_lookup_secrets", "word_lookup_selection", "word_lookup_selftest", "word_lookup_settings", "word_lookup_storage", "word_lookup_support", "word_lookup_theme", "word_lookup_translator_settings", "word_lookup_translators", "word_lookup_ui", "word_lookup_utils", "word_lookup_version", "word_lookup_window_controller"]
+
+[tool.setuptools.packages.find]
+include = ["wordlookup*"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 110
+exclude = [".venv", "build", "dist"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "B006", "B008", "B011", "B018"]
+
+[tool.ruff.lint.per-file-ignores]
+# Existing fault-injection tests use concise local fakes; behavior is tested by pytest.
+"tests/*" = ["E701", "E702", "E731"]
+
+[tool.mypy]
+python_version = "3.11"
+files = ["word_lookup_paths.py", "word_lookup_version.py", "word_lookup_schemas.py", "word_lookup_utils.py", "word_lookup_models.py", "word_lookup_config.py", "word_lookup_instance.py", "wordlookup/network/official.py", "word_lookup_i18n.py", "word_lookup_package.py"]
+check_untyped_defs = true
+ignore_missing_imports = true
+warn_unused_ignores = true
+no_implicit_optional = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "tests_core"]
+addopts = "-ra"
+
+[tool.coverage.run]
+source = ["wordlookup", "."]
+omit = ["tests/*", "tests_core/*", "scripts/*", "build/*", "dist/*", ".venv/*"]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
+fail_under = 65
+
+[tool.setuptools.package-data]
+wordlookup = ["data/*.txt", "data/*.md", "locale/*/LC_MESSAGES/*.mo", "locale/*/LC_MESSAGES/*.po", "locale/*.pot"]

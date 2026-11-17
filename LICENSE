@@ -1,0 +1,17 @@
+Copyright (c) 2026 SanchezKabanchez. All rights reserved.
+
+No license to use, copy, modify, redistribute, sublicense, or create derivative
+works from this project's original source code is granted by publication of
+the repository or distribution of source archives. Such permission requires
+an express written agreement from the copyright holder, except where
+applicable law provides otherwise.
+
+Third-party software and data retain their own licenses. In particular,
+wordlookup/data/en_frequency_50k.txt is distributed under CC BY-SA 4.0, as described in
+wordlookup/data/README.md and wordlookup/data/LICENSE-CC-BY-SA-4.0.txt. This notice does not restrict
+permissions granted by those separate licenses.
+
+These terms do not limit replacement or modification of separately licensed
+LGPL libraries, or reverse engineering necessary to debug those modifications.
+The corresponding third-party source and license information accompany EXE
+builds in THIRD_PARTY_LICENSES; no ownership of those libraries is claimed.

@@ -1,0 +1,3 @@
+# Optional pip-only OCR engine. install.bat installs this together with the app.
+-r requirements.txt
+rapidocr-onnxruntime==1.4.4

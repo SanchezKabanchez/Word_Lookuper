@@ -1,0 +1,636 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+
+#: word_lookup_ui.py:898
+msgid "1 · Ще раз"
+msgstr ""
+
+#: word_lookup_ui.py:900
+msgid "2 · Знаю"
+msgstr ""
+
+#: word_lookup_ui.py:1484
+msgid "API-ключ:"
+msgstr ""
+
+#: word_lookup_ui.py:1521
+msgid "Anki — тег гри для карток"
+msgstr ""
+
+#: word_lookup_ui.py:1215
+msgid "Ctrl+Alt+R → ←/→ слова, ↑/↓ рядки, Enter — картка, Esc — закрити."
+msgstr ""
+
+#: word_lookup_ui.py:1500
+msgid "DeepL часто краще розуміє контекст: при пошуку слова по OCR програма передає йому весь рядок навколо слова, тож «chest» у Minecraft має перекладатися як «сундук». Потрібен безкоштовний ключ «DeepL API Free» (deepl.com → API; до 500 000 символів на місяць, при реєстрації можуть попросити картку для верифікації). Текст надсилається на сервери DeepL. Windows: ключ зберігається у Credential Manager або в локальному файлі, зашифрованому Windows DPAPI для твого облікового запису. macOS використовує Keychain, Linux — Secret Service за наявності розблокованого сховища сеансу. Ключ підхоплюється після запуску. Без захищеного сховища — лише цей сеанс, без запису у config.json. Якщо DeepL недоступний або ліміт вичерпано, резервні джерела працюють лише коли їх дозволено вище."
+msgstr ""
+
+#: word_lookup_ui.py:1477
+msgid "DeepL — переклад з урахуванням контексту (необов'язково)"
+msgstr ""
+
+#: word_lookup_translator_settings.py:29
+msgid "HTTPS або локальний HTTP, наприклад http://127.0.0.1:5000"
+msgstr ""
+
+#: word_lookup_ui.py:1443
+msgid "OCR (розпізнавання тексту на екрані)"
+msgstr ""
+
+#: word_lookup_ui.py:1465
+msgid "RapidOCR масштабує знімок сам; збільшення потрібне лише для Tesseract."
+msgstr ""
+
+#: word_lookup_translator_settings.py:69
+msgid "Імпортувати модель…"
+msgstr ""
+
+#: word_lookup_ui.py:1470
+msgid "Іноді OCR губить пробіл між двома сусідніми словами. Ця перевірка шукає видиму прогалину на зображенні й уточнює лише те слово, де курсор. Вимкни, якщо вона починає помилятись на звичайних словах."
+msgstr ""
+
+#: word_lookup_ui.py:1306
+msgid "Автоматичний словник при виділенні тексту"
+msgstr ""
+
+#: word_lookup_ui.py:1231
+msgid "Автоматично визначати активну гру"
+msgstr ""
+
+#: word_lookup_library.py:110
+msgid "Бібліотека — Word Lookup"
+msgstr ""
+
+#: word_lookup_ui.py:1083
+msgid "Бібліотека →"
+msgstr ""
+
+#: word_lookup_translator_settings.py:96
+msgid "Вибери модель Argos"
+msgstr ""
+
+#: word_lookup_library.py:187
+msgid "Вибрати знайдені"
+msgstr ""
+
+#: word_lookup_ui.py:1212
+msgid "Вибір на стоп-кадрі:"
+msgstr ""
+
+#: word_lookup_profiles_ui.py:20
+msgid "Вибір слова"
+msgstr ""
+
+#: word_lookup_profiles_ui.py:40
+msgid "Вибір слова:"
+msgstr ""
+
+#: word_lookup_library.py:388
+msgid "Видалити"
+msgstr ""
+
+#: word_lookup_profiles_ui.py:67
+msgid "Видалити профіль"
+msgstr ""
+
+#: word_lookup_ui.py:1313
+msgid "Виділи слово чи фразу мишею (перетягуванням) або клацни двічі по слову — і картка з'явиться сама. Працює там, де текст можна виділити насправді: у браузері, PDF, Word тощо. Для гри, де текст не виділити, лишається пошук по наведенню курсора вище."
+msgstr ""
+
+#: word_lookup_ui.py:1303
+msgid "Вийти з програми"
+msgstr ""
+
+#: word_lookup_ui.py:1480
+msgid "Використовувати DeepL, коли ключ вказано"
+msgstr ""
+
+#: word_lookup_translator_settings.py:53
+msgid "Використовувати встановлені локальні моделі"
+msgstr ""
+
+#: word_lookup_ui.py:1236
+msgid "Вручну (.exe):"
+msgstr ""
+
+#: word_lookup_library.py:420
+msgid "Відкрити зображення"
+msgstr ""
+
+#: word_lookup_ui.py:1161
+msgid "Відкрити файл журналу"
+msgstr ""
+
+#: word_lookup_ui.py:1247
+msgid "Відновити автоматично через, с:"
+msgstr ""
+
+#: word_lookup_ui.py:1250
+msgid "Відновити гру зараз"
+msgstr ""
+
+#: word_lookup_library.py:136
+msgid "Відновити з файлу…"
+msgstr ""
+
+#: word_lookup_library.py:287
+msgid "Відновити слова зі saved_words.json або резервної копії"
+msgstr ""
+
+#: word_lookup_ui.py:1333
+msgid "Гарячі клавіші"
+msgstr ""
+
+#: word_lookup_ui.py:1260
+msgid "Гра з захопленою мишею (наприклад, Cyberpunk 2077)"
+msgstr ""
+
+#: word_lookup_settings.py:103
+msgid "Для вибору слова захоплювати лише активний монітор"
+msgstr ""
+
+#: word_lookup_library.py:419
+msgid "Додати зображення…"
+msgstr ""
+
+#: word_lookup_ui.py:1169
+msgid "Додати останній OCR-фрагмент екрана з рамками слів (може містити приватний текст)"
+msgstr ""
+
+#: word_lookup_translator_settings.py:26
+msgid "Дозволити цьому джерелу отримувати слово й контекст"
+msgstr ""
+
+#: word_lookup_ui.py:1148
+msgid "Діагностика OCR (3 с)"
+msgstr ""
+
+#: word_lookup_ui.py:1182
+msgid "Діагностика словника"
+msgstr ""
+
+#: word_lookup_ui.py:1150
+msgid "Діагностика: натисни, наведи курсор на текст — за 3 секунди буде знімок і звіт, що саме бачить OCR."
+msgstr ""
+
+#: word_lookup_ui.py:1203
+msgid "Екран одразу заморожується на місці — тому підказка (тултіп), яка в грі зникає при русі миші, залишиться на скріншоті, поки ти спокійно виділяєш потрібне слово."
+msgstr ""
+
+#: word_lookup_library.py:215
+msgid "Експорт .apkg"
+msgstr ""
+
+#: word_lookup_library.py:214
+msgid "Експорт .txt"
+msgstr ""
+
+#: word_lookup_library.py:618
+msgid "Експорт в Anki"
+msgstr ""
+
+#: word_lookup_library.py:613
+msgid "Експорт в Anki (готова колода)"
+msgstr ""
+
+#: word_lookup_ui.py:1156
+msgid "Журнал (щоб розібратись, що пішло не так)"
+msgstr ""
+
+#: word_lookup_ui.py:1164
+msgid "Журнал містить шукані слова й частини тексту. Переглянь звіт перед надсиланням. Ключ DeepL приховано; файл обмежений ~600 КБ."
+msgstr ""
+
+#: word_lookup_settings.py:81
+msgid "Журнал ще порожній."
+msgstr ""
+
+#: word_lookup_settings.py:91
+msgid "Журнал і його попередню копію очищено."
+msgstr ""
+
+#: word_lookup_ui.py:1344
+msgid "Записати"
+msgstr ""
+
+#: word_lookup_ui.py:1167
+msgid "Записувати часову шкалу OCR, паузи та ресурсів для діагностики"
+msgstr ""
+
+#: word_lookup_ui.py:1297
+msgid "Запускати згорнутою"
+msgstr ""
+
+#: word_lookup_library.py:386
+msgid "Зберегти (Ctrl+S)"
+msgstr ""
+
+#: word_lookup_settings.py:18
+msgid "Зберегти діагностичний пакет"
+msgstr ""
+
+#: word_lookup_ui.py:1173
+msgid "Зберегти діагностичний пакет…"
+msgstr ""
+
+#: word_lookup_library.py:310
+msgid "Зберегти зміни до картки?"
+msgstr ""
+
+#: word_lookup_translator_settings.py:39 word_lookup_ui.py:1495
+msgid "Зберегти ключ"
+msgstr ""
+
+#: word_lookup_profiles_ui.py:65
+msgid "Зберегти профіль"
+msgstr ""
+
+#: word_lookup_ui.py:1354
+msgid "Збери зручну картку"
+msgstr ""
+
+#: word_lookup_ui.py:1284
+msgid "Зберігати до"
+msgstr ""
+
+#: word_lookup_ui.py:1275
+msgid "Зберігати скриншот контексту зі словом (локально, для повторення)"
+msgstr ""
+
+#: word_lookup_ui.py:1461
+msgid "Збільшення знімка (1–4, лише Tesseract)"
+msgstr ""
+
+#: word_lookup_settings.py:68
+msgid "Звіт містить шукані слова, частини речень і налаштування. Ключ DeepL приховано. Переглянь текст перед надсиланням іншій людині. Скопіювати звіт?"
+msgstr ""
+
+#: word_lookup_settings.py:77
+msgid "Звіт скопійовано. Переглянь його перед надсиланням."
+msgstr ""
+
+#: word_lookup_ui.py:1302
+msgid "Згорнути"
+msgstr ""
+
+#: word_lookup_ui.py:1355
+msgid "Зміни одразу видно у відкритій картці. Власні переклади залишаються збереженими."
+msgstr ""
+
+#: word_lookup_ui.py:1196
+msgid "Знайти"
+msgstr ""
+
+#: word_lookup_library.py:188
+msgid "Зняти"
+msgstr ""
+
+#: word_lookup_library.py:486
+msgid "Зображення контексту"
+msgstr ""
+
+#: word_lookup_translator_settings.py:67
+msgid "Каталог моделей (браузер)"
+msgstr ""
+
+#: word_lookup_ui.py:1280
+msgid "Кеш на диску"
+msgstr ""
+
+#: word_lookup_ui.py:1330
+msgid "Клік передається і грі/програмі — вибери кнопку, яка там не потрібна."
+msgstr ""
+
+#: word_lookup_ui.py:1320
+msgid "Кнопка миші для пошуку слова (наведення, як в іграх)"
+msgstr ""
+
+#: word_lookup_ui.py:1322
+msgid "Кнопка:"
+msgstr ""
+
+#: word_lookup_ui.py:1291
+msgid "Кожне вже знайдене слово зберігається на диску, щоб наступного разу відкриватись миттєво й без інтернету. Розмір обмежений і зазвичай не перевищує кілька мегабайтів."
+msgstr ""
+
+#: word_lookup_library.py:212
+msgid "Колода"
+msgstr ""
+
+#: word_lookup_ui.py:1381
+msgid "Колір підсвічування"
+msgstr ""
+
+#: word_lookup_translator_settings.py:51
+msgid "Локальні моделі Argos / CTranslate2 (необов'язково)"
+msgstr ""
+
+#: word_lookup_settings.py:38
+msgid "Мережа й джерела даних"
+msgstr ""
+
+#: word_lookup_ui.py:1085
+msgid "НАЛАШТУВАННЯ"
+msgstr ""
+
+#: word_lookup_settings.py:94
+msgid "Навантаження OCR"
+msgstr ""
+
+#: word_lookup_ui.py:1523
+msgid "Назва гри:"
+msgstr ""
+
+#: word_lookup_ui.py:1432
+msgid "Налаштувати вміст картки…"
+msgstr ""
+
+#: word_lookup_ui.py:1335
+msgid "Натисни «Записати», потім комбінацію. Esc — скасувати."
+msgstr ""
+
+#: word_lookup_library.py:296
+msgid "Не вдалося відновити бібліотеку. Вибери справний saved_words.json або його резервну копію. Перевір доступ до папки й закрий інші копії програми. Попередні дані не замінено."
+msgstr ""
+
+#: word_lookup_profiles_ui.py:64
+msgid "Новий"
+msgstr ""
+
+#: word_lookup_profiles_ui.py:44
+msgid "Область OCR, px:"
+msgstr ""
+
+#: word_lookup_library.py:387
+msgid "Озвучити"
+msgstr ""
+
+#: word_lookup_settings.py:40
+msgid "Онлайн-пошук надсилає слово, а для перекладу контексту — речення. Знімки екрана залишаються локально. Вимкнене джерело не отримує нових запитів; уже надісланий запит може завершитися."
+msgstr ""
+
+#: word_lookup_library.py:135
+msgid "Оновити"
+msgstr ""
+
+#: word_lookup_settings.py:43
+msgid "Офлайн — лише локальний словник, бібліотека й кеш"
+msgstr ""
+
+#: word_lookup_ui.py:1347
+msgid "Очистити"
+msgstr ""
+
+#: word_lookup_ui.py:1163
+msgid "Очистити журнал"
+msgstr ""
+
+#: word_lookup_ui.py:1289
+msgid "Очистити кеш зараз"
+msgstr ""
+
+#: word_lookup_profiles_ui.py:21
+msgid "Пауза"
+msgstr ""
+
+#: word_lookup_ui.py:1134
+msgid "Пауза / Продовжити"
+msgstr ""
+
+#: word_lookup_ui.py:1219
+msgid "Пауза гри під час пошуку (Windows)"
+msgstr ""
+
+#: word_lookup_ui.py:1252
+msgid "Пауза діє для пошуку слова/рядка, Ctrl+Alt+R та Ctrl+Alt+G. Режим до закриття картки тримає гру до Esc, закриття або ліміту часу. Профіль гри має пріоритет над загальним перемикачем паузи. Це заморозка процесу, не внутрішня пауза гри. Спершу тестуй на несуттєвій одиночній грі; не вмикай в онлайні."
+msgstr ""
+
+#: word_lookup_translator_settings.py:40
+msgid "Перевірити (Hello)"
+msgstr ""
+
+#: word_lookup_ui.py:1242
+msgid "Перевірити визначення через 3 с"
+msgstr ""
+
+#: word_lookup_ui.py:1493
+msgid "Перевірити ключ"
+msgstr ""
+
+#: word_lookup_ui.py:1147
+msgid "Перевірити ще раз"
+msgstr ""
+
+#: word_lookup_library.py:204
+msgid "Передати в Anki"
+msgstr ""
+
+#: word_lookup_ui.py:1428
+msgid "Переклад на:"
+msgstr ""
+
+#: word_lookup_ui.py:1177
+msgid "Переклад і словник (English – визначення, синоніми)"
+msgstr ""
+
+#: word_lookup_ui.py:1108
+msgid "Перекладай. Зберігай.\nПовертайся до слів."
+msgstr ""
+
+#: word_lookup_ui.py:878
+msgid "Повторення слів — Word Lookup"
+msgstr ""
+
+#: word_lookup_library.py:203
+msgid "Повторити слова"
+msgstr ""
+
+#: word_lookup_ui.py:896
+msgid "Показати відповідь (Пробіл)"
+msgstr ""
+
+#: word_lookup_ui.py:1092
+msgid "Показати картку"
+msgstr ""
+
+#: word_lookup_ui.py:1197
+msgid "Показати приклад"
+msgstr ""
+
+#: word_lookup_ui.py:1399
+msgid "Показати приклад картки"
+msgstr ""
+
+#: word_lookup_ui.py:474
+msgid "Показати ще"
+msgstr ""
+
+#: word_lookup_ui.py:1308
+msgid "Показувати переклад/словник одразу, щойно виділено текст (без гарячої клавіші)"
+msgstr ""
+
+#: word_lookup_translator_settings.py:58
+msgid "Потоків CPU:"
+msgstr ""
+
+#: word_lookup_translator_settings.py:46
+msgid "Потрібен увімкнений Cloud Translation Basic API та білінг Google Cloud. Ключ зберігається у сховищі ОС. Перевірка надсилає лише слово Hello."
+msgstr ""
+
+#: word_lookup_library.py:140
+msgid "Пошук за словом, перекладом, грою"
+msgstr ""
+
+#: word_lookup_ui.py:1221
+msgid "Призупиняти активну гру при OCR-пошуку"
+msgstr ""
+
+#: word_lookup_profiles_ui.py:55
+msgid "Призупиняти гру (тривалість із загальних налаштувань)"
+msgstr ""
+
+#: word_lookup_ui.py:1393
+msgid "Приклади й переклад визначення видно, коли увімкнені визначення."
+msgstr ""
+
+#: word_lookup_profiles_ui.py:14
+msgid "Профіль діє для активного .exe при наступному пошуку. Для ігор без профілю діють загальні налаштування."
+msgstr ""
+
+#: word_lookup_profiles_ui.py:12
+msgid "Профілі ігор"
+msgstr ""
+
+#: word_lookup_profiles_ui.py:37
+msgid "Процес (.exe):"
+msgstr ""
+
+#: word_lookup_profiles_ui.py:19
+msgid "Процес гри"
+msgstr ""
+
+#: word_lookup_ui.py:1396
+msgid "Підсвічувати знайдене слово на екрані"
+msgstr ""
+
+#: word_lookup_ui.py:1207
+msgid "Підсвічувати слово під курсором на застиглому екрані (клік — шукати)"
+msgstr ""
+
+#: word_lookup_ui.py:1326
+msgid "Разом із клавішею:"
+msgstr ""
+
+#: word_lookup_ui.py:1363
+msgid "Розмір і оформлення"
+msgstr ""
+
+#: word_lookup_ui.py:1141
+msgid "Розпізнавання тексту (OCR)"
+msgstr ""
+
+#: word_lookup_ui.py:1467
+msgid "Розпізнавати злиті слова без пробілу (напр. «Nexttime» → «Next»)"
+msgstr ""
+
+#: word_lookup_ui.py:788
+msgid "Рухай мишею або стрілками/WASD · Enter/Пробіл — шукати слово · Esc — скасувати"
+msgstr ""
+
+#: word_lookup_ui.py:1445
+msgid "Рушій:"
+msgstr ""
+
+#: word_lookup_ui.py:1349
+msgid "Скинути гарячі клавіші до стандартних"
+msgstr ""
+
+#: word_lookup_ui.py:1082
+msgid "Слова з твоїх світів"
+msgstr ""
+
+#: word_lookup_ui.py:1426
+msgid "Словник"
+msgstr ""
+
+#: word_lookup_profiles_ui.py:58
+msgid "Спершу перевір на несуттєвій одиночній грі. Не вмикай паузу в онлайн-іграх."
+msgstr ""
+
+#: word_lookup_ui.py:1190
+msgid "Спробувати"
+msgstr ""
+
+#: word_lookup_library.py:393
+msgid "Стан:"
+msgstr ""
+
+#: word_lookup_profiles_ui.py:52
+msgid "Тег Anki:"
+msgstr ""
+
+#: word_lookup_ui.py:1529
+msgid "Тег додається до карток .apkg: в Anki за ним можна відфільтрувати слова з конкретної гри. Назва, вписана тут, ставиться всім експортованим карткам. На картці також буде блок «From the game» з реченням, у якому ти знайшов слово."
+msgstr ""
+
+#: word_lookup_settings.py:106
+msgid "Типово 2 потоки й один OCR-прохід за раз. Для слабшого ПК можна вибрати 1. Менший знімок економить CPU, але може погіршити розпізнавання дрібного тексту. Параметри застосовуються до наступного OCR; вже запущений прохід завершується."
+msgstr ""
+
+#: word_lookup_ui.py:1226
+msgid "Тривалість:"
+msgstr ""
+
+#: word_lookup_translator_settings.py:61
+msgid "У Python-версії спершу запусти install_offline.bat (в EXE рушій уже є), завантаж модель з каталогу й імпортуй .argosmodel із sentencepiece.model. Потрібна пара English → обрана мова. Моделі займають додаткову пам'ять і місце. Зміна потоків діє після перезапуску. Текст лишається на ПК; автоматичного завантаження моделей немає."
+msgstr ""
+
+#: word_lookup_ui.py:253
+msgid "Усі налаштування картки…"
+msgstr ""
+
+#: word_lookup_ui.py:1448
+msgid "Шлях до tesseract:"
+msgstr ""
+
+#: word_lookup_ui.py:1385
+msgid "Що показувати в картці"
+msgstr ""
+
+#: word_lookup_ui.py:1184
+msgid "Якщо в грі показується лише переклад без визначень і синонімів (секцій English / English Thesaurus), ця перевірка покаже, чи доступний dictionaryapi.dev з твоєї мережі."
+msgstr ""
+
+#: word_lookup_ui.py:1264
+msgid "Якщо миша прив'язана до камери в грі й наведення курсора не працює: натисни цю кнопку (або гарячу клавішу) — з'явиться приціл, який можна рухати фізичною мишею або стрілками/WASD (Shift — швидше), Enter/Пробіл — знайти слово, Esc — скасувати. Працює незалежно від того, чи гра тримає фокус вікна, і незалежно від системного курсора миші."
+msgstr ""
+
+#: word_lookup_ui.py:1526
+msgid "Якщо порожньо — брати назву з заголовка вікна гри (лише Windows)"
+msgstr ""
+
+#: word_lookup_ui.py:1490
+msgid "показати"
+msgstr ""
+
+#: word_lookup_ui.py:1288
+msgid "слів (0 — не кешувати)"
+msgstr ""
+
+#: word_lookup_ui.py:1201
+msgid "✂  Виділити область на екрані (як скріншот)"
+msgstr ""
+
+#: word_lookup_ui.py:466
+msgid "✓ Збережено"
+msgstr ""
+
+#: word_lookup_ui.py:1262
+msgid "🎯  Керований курсор (миша + клавіатура)"
+msgstr ""
+
+#: word_lookup_ui.py:1160
+msgid "📋 Скопіювати журнал"
+msgstr ""
+

@@ -1,0 +1,56 @@
+name: Linux desktop checks and screenshots
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  desktop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PYGAME_HIDE_SUPPORT_PROMPT: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install desktop and OCR dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-tk tesseract-ocr xclip xvfb xauth fonts-dejavu-core
+          python -m pip install -r requirements.lock
+          python -m pip install -r requirements-ocr.txt -c requirements.lock
+      - name: Exercise full suite on a virtual display
+        run: |
+          mkdir -p "$RUNNER_TEMP/word-lookup-artifacts"
+          xvfb-run -a -s '-screen 0 1440x1000x24' python -m pytest -q --cov --cov-report=xml:"$RUNNER_TEMP/word-lookup-artifacts/coverage.xml" --cov-report=term --junitxml="$RUNNER_TEMP/word-lookup-artifacts/linux-results.xml"
+        env:
+          XDG_CONFIG_HOME: ${{ runner.temp }}/word-lookup-tests
+      - name: Render real Tk screenshots from local fixtures
+        if: always()
+        run: xvfb-run -a -s '-screen 0 1440x1000x24' python scripts/render_screens.py --output-dir "$RUNNER_TEMP/word-lookup-artifacts/linux-native-tk"
+      - name: Retain Linux test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-test-results
+          path: ${{ runner.temp }}/word-lookup-artifacts/linux-results.xml
+          if-no-files-found: error
+      - name: Retain Linux UI screenshots with native Tk scaling
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-ui-native-tk-screenshots
+          path: ${{ runner.temp }}/word-lookup-artifacts/linux-native-tk/
+          if-no-files-found: error
+
+      - name: Retain coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-coverage
+          path: ${{ runner.temp }}/word-lookup-artifacts/coverage.xml
+          if-no-files-found: warn

@@ -1,0 +1,17 @@
+{
+  "sentences": [
+    {
+      "trans": "привіт",
+      "orig": "hello"
+    }
+  ],
+  "dict": [
+    {
+      "pos": "interjection",
+      "terms": [
+        "привіт",
+        "вітаю"
+      ]
+    }
+  ]
+}

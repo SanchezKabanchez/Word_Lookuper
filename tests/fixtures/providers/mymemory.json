@@ -1,0 +1,26 @@
+{
+  "responseData": {
+    "translatedText": "привіт",
+    "match": 1
+  },
+  "responseStatus": 200,
+  "quotaFinished": false,
+  "responseDetails": "",
+  "matches": [
+    {
+      "segment": "hello",
+      "translation": "привіт",
+      "match": 1
+    },
+    {
+      "segment": "Hello ",
+      "translation": "Доброго дня! ",
+      "match": 0.98
+    },
+    {
+      "segment": "Hello",
+      "translation": "Вітаю!",
+      "match": 0.98
+    }
+  ]
+}

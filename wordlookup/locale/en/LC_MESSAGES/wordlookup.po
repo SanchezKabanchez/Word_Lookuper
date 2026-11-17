@@ -1,0 +1,50 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: en\n"
+
+msgid "Вигляд ▾"
+msgstr "Appearance \u25be"
+
+msgid "Видалити"
+msgstr "Delete"
+
+msgid "Всі слова"
+msgstr "All words"
+
+msgid "Відновити з файлу…"
+msgstr "Restore from file\u2026"
+
+msgid "Експорт .apkg"
+msgstr "Export .apkg"
+
+msgid "Експорт .txt"
+msgstr "Export .txt"
+
+msgid "Закрити"
+msgstr "Close"
+
+msgid "Закріпити"
+msgstr "Pin"
+
+msgid "Зберегти ключ"
+msgstr "Save key"
+
+msgid "Зберегти слово"
+msgstr "Save word"
+
+msgid "Копіювати"
+msgstr "Copy"
+
+msgid "Озвучити"
+msgstr "Speak"
+
+msgid "Оновити"
+msgstr "Refresh"
+
+msgid "Перевірити (Hello)"
+msgstr "Test (Hello)"
+
+msgid "Повторити слова"
+msgstr "Review words"
+

@@ -1,0 +1,3 @@
+-r requirements-ocr.txt
+-r requirements-offline.txt
+pyinstaller==6.22.3
