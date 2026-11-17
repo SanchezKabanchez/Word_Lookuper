@@ -1,0 +1,2 @@
+# Preserve the licensed upstream file byte-for-byte, including its SHA-256.
+wordlookup/data/en_frequency_50k.txt -text

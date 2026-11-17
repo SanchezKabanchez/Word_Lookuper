@@ -47,7 +47,7 @@ def test_cache_is_bounded_lru_and_does_not_share_context(card):
     w.cfg["cache"]["max_entries"] = 0
     assert w.cached_word_card("a") is None
     w.save_card_cache()
-    assert decode_cards(json.load(open(w._cache_path()))) == {}
+    assert decode_cards(json.load(open(w._cache_path(), encoding="utf-8"))) == {}
 
 
 def test_parallel_cache_writes_are_valid_json(card):
@@ -55,7 +55,7 @@ def test_parallel_cache_writes_are_valid_json(card):
     with ThreadPoolExecutor(max_workers=8) as pool:
         list(pool.map(lambda n: w._cache_word_card(str(n), card), range(80)))
     w.save_card_cache()
-    data = decode_cards(json.load(open(w._cache_path())))
+    data = decode_cards(json.load(open(w._cache_path(), encoding="utf-8")))
     assert len(data) == 20
     assert all(v["word"] == card["word"] for v in data.values())
 
@@ -183,4 +183,4 @@ def test_saved_partial_is_enriched_without_duplicates(card):
 def test_secret_redacted_in_console_and_file(capsys):
     w.log("DeepL-Auth-Key some-test-secret")
     assert "some-test-secret" not in capsys.readouterr().out
-    assert "some-test-secret" not in open(w.log_path()).read()
+    assert "some-test-secret" not in open(w.log_path(), encoding="utf-8").read()

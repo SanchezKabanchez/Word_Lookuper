@@ -335,7 +335,7 @@ def test_lookup_pause_holds_after_selection_and_through_card_until_escape(app, c
     assert not guard.active and app._game_pause is None and app.popup is None
 
 
-def test_lookup_pause_releases_on_error_with_partial_card_and_card_timeout(app, card):
+def test_lookup_pause_releases_on_error_with_partial_card_and_card_timeout(app, card, monkeypatch):
     guard = app._game_pause = FakeGuard()
     app._game_pause_mode = "lookup"
     app.show_lookup(card, None, (400, 500, 400, 500))
@@ -343,6 +343,9 @@ def test_lookup_pause_releases_on_error_with_partial_card_and_card_timeout(app, 
     assert not guard.active
     guard = app._game_pause = FakeGuard()
     app._game_pause_mode = "lookup"
+    # A card under the pointer intentionally extends its lifetime. Simulate
+    # the outside-pointer case independently of the runner desktop cursor.
+    monkeypatch.setattr(app.popup.win, "winfo_pointerxy", lambda: (-9999, -9999))
     app.popup._on_timeout()
     assert not guard.active and app.popup is None
 

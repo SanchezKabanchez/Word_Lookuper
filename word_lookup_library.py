@@ -256,7 +256,7 @@ class LibraryViewMixin:
         maximum = width - self._library_editor_min - 7
         if maximum < self._library_sidebar_min:
             return
-        preferred = min(self._library_preferred_width, width - max(500, self._library_editor_min))
+        preferred = min(self._library_preferred_width, maximum)
         panes.sash_place(0, max(self._library_sidebar_min, min(preferred, maximum)), 0)
         self._library_split_initialized = True
 

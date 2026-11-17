@@ -183,6 +183,8 @@ def test_open_and_tk_escape_invalidate_results_from_before_the_frozen_frame(app,
     try:
         app.root.update()
         assert app.active_token != previous
+        overlay.win.focus_force()
+        app.root.update()
         overlay.win.event_generate('<Escape>')
         wait_for(app.root, lambda: app.selector is None)
         assert app.manager.raw_mode_cb is None

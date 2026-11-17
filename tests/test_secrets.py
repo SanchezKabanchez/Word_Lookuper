@@ -36,7 +36,7 @@ def test_legacy_key_migrates_to_vault_without_json_plaintext(monkeypatch):
     assert loaded['freeze']['pause_seconds'] == 20
     assert w.save_config(loaded)
     assert vault.value == 'unit-test-key:fx'
-    assert 'unit-test-key' not in open(w.config_path()).read()
+    assert 'unit-test-key' not in open(w.config_path(), encoding="utf-8").read()
     assert w.load_config()['deepl']['key'] == vault.value
     w.save_config(loaded)
     assert vault.writes == 1
@@ -53,7 +53,7 @@ def test_unavailable_vault_never_falls_back_to_plaintext(monkeypatch, capsys):
     config = copy.deepcopy(w.DEFAULT_CONFIG)
     config['deepl']['key'] = 'never-log-this-secret'
     assert w.save_config(config)
-    assert json.load(open(w.config_path()))['deepl']['key'] == ''
+    assert json.load(open(w.config_path(), encoding="utf-8"))['deepl']['key'] == ''
     assert config['deepl']['key'] == 'never-log-this-secret'
     assert 'never-log-this-secret' not in capsys.readouterr().out
 
@@ -73,7 +73,7 @@ def test_actual_configured_key_is_redacted_from_exception_logs(monkeypatch, caps
     except RuntimeError:
         w.log_exc('provider')
     assert 'unique-runtime-deepl-value' not in capsys.readouterr().out
-    assert 'unique-runtime-deepl-value' not in open(w.log_path()).read()
+    assert 'unique-runtime-deepl-value' not in open(w.log_path(), encoding="utf-8").read()
 
 
 @pytest.mark.skipif(not __import__('sys').platform.startswith('win'), reason='Windows Credential Manager integration')
