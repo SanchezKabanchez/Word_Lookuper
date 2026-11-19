@@ -24,6 +24,9 @@ def test_headword_is_reachable_by_tab_and_edits_from_keyboard(app, card):
     assert str(title.cget('takefocus')) == '1'
     assert title.bind('<Return>')
     assert title.bind('<space>')
+    # The traversal helper is a lazy Tcl script; do not depend on an earlier
+    # native focus/Tab event having loaded it in this fresh interpreter.
+    title.tk.call('auto_load', 'tk_focusNext')
     assert str(title.tk.call('tk_focusNext', str(app.popup.toolbar_buttons[-1]))) == str(title)
     title.focus_force()
     title.event_generate('<Return>')
