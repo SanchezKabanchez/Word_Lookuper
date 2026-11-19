@@ -20,6 +20,15 @@ def run(path: str) -> None:
     from keyring.backends.Windows import WinVaultKeyring
     assert WinVaultKeyring
     assert lookup('kindness')
+    # Deferred imports must also work inside the frozen bundle on first use.
+    from wordlookup.network.policy import LockedSession
+    session = LockedSession({'User-Agent': 'WordLookup-self-test'})
+    try:
+        assert session.headers['User-Agent'] == 'WordLookup-self-test'
+        import requests
+        assert Path(requests.certs.where()).is_file()
+    finally:
+        session.close()
     root = tk.Tk()
     try:
         root.withdraw()
