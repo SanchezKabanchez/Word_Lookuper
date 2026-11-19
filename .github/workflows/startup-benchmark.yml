@@ -1,0 +1,48 @@
+name: Compare real Windows EXE startup
+on:
+  workflow_dispatch:
+  push:
+    branches: ['word-lookup-audit-*']
+    paths:
+      - 'word_lookup*.py'
+      - 'wordlookup/network/**'
+      - 'WordLookup.spec'
+      - 'requirements-build.lock'
+      - 'scripts/build_exe.py'
+      - 'scripts/benchmark_startup.py'
+      - '.github/workflows/startup-benchmark.yml'
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: 89280795db92944b332865c8616ef0b47bae7302
+          path: startup-baseline
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          architecture: x64
+          cache: pip
+      - run: python -m pip install -r requirements-build.lock
+      - name: Build and smoke-test baseline 8.5.0 with the same dependencies
+        working-directory: startup-baseline
+        run: python scripts/build_exe.py --smoke
+      - name: Build and smoke-test optimized EXE
+        run: python scripts/build_exe.py --smoke
+      - name: Alternate real launches on the same Windows runner
+        run: >-
+          python scripts/benchmark_startup.py
+          --before startup-baseline/dist/WordLookup/WordLookup.exe
+          --after dist/WordLookup/WordLookup.exe
+          --runs 3
+          --output "${{ runner.temp }}/startup-benchmark.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-exe-startup-comparison
+          path: ${{ runner.temp }}/startup-benchmark.json
+          if-no-files-found: error

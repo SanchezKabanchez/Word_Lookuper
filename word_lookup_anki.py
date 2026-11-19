@@ -9,7 +9,6 @@ import importlib.util
 import os
 import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
-import requests
 _WORD_FRONT = '<div class="word">{{Word}}</div>{{tts en_US:Word}}'
 _APKG_CSS = (".card{font-family:arial;font-size:20px;text-align:left;color:#222;background:#fff}"
              ".nightMode .card{color:#eee;background:#2c2c2c}"
@@ -216,6 +215,7 @@ class Anki:
 
     def anki_call(self, action, **params):
         """Лише локальна Anki; ключі й доступ до зовнішніх серверів не потрібні."""
+        import requests
         try:
             response = requests.post("http://127.0.0.1:8765", json={
                 "action": action, "version": 6, "params": params}, timeout=8,

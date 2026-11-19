@@ -8,7 +8,6 @@ from html.parser import HTMLParser
 from urllib.parse import urljoin, urlsplit
 from wordlookup.network.official import libre_endpoint
 
-import requests
 import threading
 
 MAX_RESPONSE_BYTES = 2 * 1024 * 1024
@@ -16,45 +15,61 @@ AUDIO_TYPES = {"audio/mpeg", "audio/mp3", "audio/ogg", "application/ogg", "audio
                "audio/x-wav", "audio/mp4", "audio/aac", "audio/flac", "audio/webm"}
 
 
-class ResponseTooLarge(requests.RequestException):
-    """A provider exceeded the bounded response budget."""
+def __getattr__(name):
+    if name == "ResponseTooLarge":
+        from wordlookup.network.responses import ResponseTooLarge
+        return ResponseTooLarge
+    raise AttributeError(name)
 
 
-class LockedSession(requests.Session):
-    """Protect mutable session headers/cookies while retaining pooled sockets."""
-    def __init__(self):
-        super().__init__()
+class LockedSession:
+    """Create pooled HTTP state on first use, serializing concurrent callers.
+
+    Opening settings or using the local library does not import requests/SSL.
+    Headers supplied by the provider are installed once, before its first call.
+    """
+    def __init__(self, headers=None):
         self._request_lock = threading.RLock()
+        self._initial_headers = dict(headers or {})
+        self._session = None
+
+    def _get_session(self):
+        if self._session is None:
+            import requests
+            session = requests.Session()
+            session.headers.update(self._initial_headers)
+            self._session = session
+        return self._session
+
+    @property
+    def headers(self):
+        with self._request_lock:
+            return self._get_session().headers
+
+    @property
+    def cookies(self):
+        with self._request_lock:
+            return self._get_session().cookies
 
     def request(self, *args, **kwargs):
         with self._request_lock:
-            return super().request(*args, **kwargs)
+            return self._get_session().request(*args, **kwargs)
+
+    def get(self, url, **kwargs):
+        return self.request("GET", url, **kwargs)
+
+    def post(self, url, **kwargs):
+        return self.request("POST", url, **kwargs)
+
+    def close(self):
+        with self._request_lock:
+            if self._session is not None:
+                self._session.close()
 
 
 def bounded_response(response, *, audio=False, limit=MAX_RESPONSE_BYTES):
-    headers = getattr(response, "headers", {})
-    content_type = headers.get("Content-Type", "").split(";", 1)[0].strip().lower()
-    try:
-        length = int(headers.get("Content-Length", "0"))
-        if length < 0 or length > limit:
-            raise ResponseTooLarge("Відповідь джерела перевищує 2 МБ.")
-        if audio and content_type not in AUDIO_TYPES:
-            raise requests.RequestException("Джерело повернуло невідомий формат аудіо.")
-        # requests.Response always provides iter_content. Lightweight injected
-        # adapters without a network stream keep their own response interface.
-        if not hasattr(response, "iter_content"):
-            return response
-        content = bytearray()
-        for chunk in response.iter_content(chunk_size=32768):
-            if len(content) + len(chunk) > limit:
-                raise ResponseTooLarge("Відповідь джерела перевищує 2 МБ.")
-            content.extend(chunk)
-        response._content = bytes(content)
-        response._content_consumed = True
-        return response
-    finally:
-        if hasattr(response, "close"):
-            response.close()
+    from wordlookup.network.responses import bounded_response as read_response
+    return read_response(response, audio=audio, limit=limit)
 
 
 PROVIDER_HOSTS = {
@@ -149,6 +164,7 @@ def remote_request(config, session, gate, method, url, *, audio=False, **kwargs)
             kwargs.pop("data", None)
             kwargs.pop("json", None)
         url = destination
+    import requests
     raise requests.TooManyRedirects("Забагато перенаправлень джерела словника")
 
 

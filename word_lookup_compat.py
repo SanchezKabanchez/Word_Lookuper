@@ -11,6 +11,10 @@ def expose(namespace: dict, bindings: dict, service, names: tuple) -> None:
 class CompatibilityModule(types.ModuleType):
     def __getattribute__(self, name):
         namespace = types.ModuleType.__getattribute__(self, "__dict__")
+        if name == "requests" and name not in namespace:
+            # Retain the legacy export without initializing HTTP at GUI startup.
+            import requests
+            namespace[name] = requests
         targets = namespace.get("_COMPAT_BINDINGS", {}).get(name)
         if targets:
             service, attribute = targets[0]

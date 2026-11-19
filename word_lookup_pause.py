@@ -55,13 +55,13 @@ def recover_paused_games(recovery_dir=None):
     Failed resumes keep their record for the next launch; live guards are never
     interfered with. Returns human-readable outcomes for the application log.
     """
-    import psutil
     results = []
     folder = Path(recovery_dir or default_recovery_dir())
     if not folder.exists():
         return results
     for path in folder.glob("*.json"):
         try:
+            import psutil
             with path.open(encoding="utf-8") as handle:
                 record = json.load(handle)
             pid, created = int(record["pid"]), float(record["created"])

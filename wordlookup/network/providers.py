@@ -58,8 +58,7 @@ class Providers:
     def __init__(self, settings, cache, logger, game_source=lambda: ""):
         self.game_source = game_source
         self.settings, self.cache, self.logger = settings, cache, logger
-        self.session = LockedSession()
-        self.session.headers.update(HEADERS)
+        self.session = LockedSession(HEADERS)
         self.cooldowns = {}
         self.cooldown_lock = threading.RLock()
         self.official = OfficialTranslators(lambda: settings.data, lambda *a, **k: self._remote_post(*a, **k), self._target_language)

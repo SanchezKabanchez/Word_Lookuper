@@ -1,11 +1,13 @@
 """Light entry point: watchdog and secondary launches never initialize Tk."""
 import sys
+import time
 
 from word_lookup_instance import SingleInstance
 from word_lookup_paths import data_dir
 
 
 def main() -> None:
+    startup_started = time.perf_counter()
     if sys.argv[1:2] == ["--self-test"]:
         from word_lookup_selftest import run
         run(sys.argv[2])
@@ -24,7 +26,7 @@ def main() -> None:
         from word_lookup_dpi import configure_dpi
         configure_dpi()
         from word_lookup import main as run_application
-        run_application(instance=instance)
+        run_application(instance=instance, startup_started=startup_started)
     finally:
         instance.close()
 

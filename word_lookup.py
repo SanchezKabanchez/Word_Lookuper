@@ -26,11 +26,13 @@ import traceback
 from collections import namedtuple
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta, timezone
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    import requests
 import tkinter as tk
 from tkinter import colorchooser, filedialog, messagebox, ttk
 import tkinter.font as tkfont
 import pyperclip
-import requests
 from wordlookup.network.budget import (REQUEST_GATE, TEXT_CACHE, LookupCancelled, check_cancelled,
                         correct_ocr_word as _explicit_ocr_word, network_scope, scoped_task, cancellable_lookup, network_job,
                         translation_scope, current_translation_language, scoped_task_until)
@@ -136,8 +138,10 @@ class App(Application):
             events=events, instance=instance)
 
 
-def main(instance=None):
+def main(instance=None, *, startup_started=None):
     global cfg
+    started = time.perf_counter() if startup_started is None else startup_started
+    imported = time.perf_counter()
     from word_lookup_instance import SingleInstance
     from word_lookup_paths import data_dir
     own_instance = instance is None
@@ -153,9 +157,23 @@ def main(instance=None):
             log(recovery_status)
         if any(cfg.get(name, {}).get("key") for name in ("deepl", "googlecloud", "libretranslate")):
             _settings.save_config(cfg)
+        configured = time.perf_counter()
         log(f"Запуск Word Lookup {__version__}: {sys.platform}, Python {sys.version.split()[0]}")
         _cache.load_card_cache()
+        cached = time.perf_counter()
         application = App(instance=instance)
+        reported = False
+        def report_ready(event):
+            nonlocal reported
+            if event.widget is application.root and not reported:
+                reported = True
+                def record():
+                    log(f"Вікно готове за {time.perf_counter() - started:.3f} с: "
+                        f"імпорт {imported - started:.3f}, "
+                        f"налаштування/відновлення {configured - imported:.3f}, "
+                        f"кеш {cached - configured:.3f}")
+                application.root.after_idle(record)
+        application.root.bind("<Map>", report_ready, add=True)
         if _settings.notice:
             application.toast(_settings.notice, timeout=8)
         application.run()

@@ -8,6 +8,7 @@ import importlib.util
 import subprocess
 import math
 import re
+import shutil
 import threading
 import time
 import word_lookup_geometry as geometry
@@ -54,17 +55,21 @@ class Ocr:
 
 
     def tesseract_ready(self) -> bool:
-        """Чи можна реально запустити tesseract. Виконує subprocess із жорстким
-        тайм-аутом 2 с, щоб зламаний чи заблокований (антивірусом) шлях ніколи не
-        підвісив програму — раніше тут не було тайм-ауту взагалі."""
-        pytesseract = self._configure_tesseract_cmd()
-        if pytesseract is None:
+        """Probe the executable without importing pytesseract, Pillow or NumPy.
+
+        Importing the Python wrapper just to ask for --version loads native
+        libraries while the first window is being drawn, even with RapidOCR.
+        Keep the real process check bounded and reserve the wrapper for OCR.
+        """
+        if importlib.util.find_spec("pytesseract") is None:
             return False
-        cmd = pytesseract.pytesseract.tesseract_cmd or "tesseract"
+        cmd = self.ocr_settings()["tesseract_cmd"] or self._default_tesseract() or shutil.which("tesseract")
+        if not cmd:
+            return False
         try:
             kwargs = {"creationflags": subprocess.CREATE_NO_WINDOW} if sys.platform.startswith("win") else {}
-            subprocess.run([cmd, "--version"], capture_output=True, timeout=2, **kwargs)
-            return True
+            result = subprocess.run([cmd, "--version"], capture_output=True, timeout=2, **kwargs)
+            return result.returncode == 0
         except (OSError, subprocess.SubprocessError):
             return False
 
